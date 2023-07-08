@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import amqp from "amqplib";
 import { v4 as uuidv4 } from "uuid";
 import Pool from "pg-pool";
-import createPostgreTable from "./createPostgreTable.ts";
+import createPostgreTable from "./createPostgreTable.js";
 
 const app = express();
 const port = 3000;
