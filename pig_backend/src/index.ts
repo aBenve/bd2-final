@@ -1,27 +1,37 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, request } from 'express';
 import amqp from 'amqplib';
 import { v4 as uuidv4 } from 'uuid';
 import Pool from 'pg-pool';
 import createPostgreTable from './createPostgreTable.ts';
+import fetch from 'node-fetch';
 
 const app = express();
 const port = 3000;
+var pool;
 
-const pool = new Pool({
-	user: 'usuario',
-	password: '123',
-	host: 'postgres',
-	port: 5432,
-	database: 'pig_backend_users',
-});
+while (true) {
+	try {
+		pool = new Pool({
+			user: 'usuario',
+			password: '123',
+			host: 'postgres',
+			port: 5432,
+			database: 'pig_backend_users',
+		});
+		break;
+	} catch {}
+}
 
 createPostgreTable(pool);
 
-await new Promise(r => setTimeout(r, 12 * 1000));
-
-const amqpConnection = await amqp.connect('amqp://rabbitmq:5672');
-const channel = await amqpConnection.createChannel();
-
+// await new Promise(r => setTimeout(r, 12 * 1000));
+while (true) {
+	try {
+		const amqpConnection = await amqp.connect('amqp://rabbitmq:5672');
+		const channel = await amqpConnection.createChannel();
+		break;
+	} catch {}
+}
 app.get('/', (req: Request, res: Response) => {
 	res.send(JSON.parse('{"message": "Hello Worlssdss!"}'));
 });
@@ -54,8 +64,7 @@ app.post('/users', async (req, res) => {
 
 app.get('/users', async (req, res) => {
 	try {
-		const db = req.app.locals.db;
-		const result = await db.query('SELECT * FROM users');
+		const result = await pool.query('SELECT * FROM users');
 		res.json(result.rows);
 	} catch (error) {
 		console.error('Error fetching users:', error);

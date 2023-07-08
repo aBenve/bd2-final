@@ -3,7 +3,7 @@ import pg from 'pg';
 
 export default function createPostgreTable(pool: Pool<pg.Client>) {
 	const query = `
-    CREATE IF NOT EXISTS TABLE users (
+    CREATE TABLE IF NOT EXISTS users (
         nombre VARCHAR(255) NOT NULL,
         uuid CHAR(36) PRIMARY KEY,
         email VARCHAR(255) NOT NULL,
@@ -19,7 +19,6 @@ export default function createPostgreTable(pool: Pool<pg.Client>) {
 		.query(query)
 		.then(res => {
 			console.log('Table created successfully');
-			pool.end();
 		})
 		.catch(err => {
 			console.error(err);
