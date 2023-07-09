@@ -30,11 +30,19 @@ public class User {
     @Column(name = "secret_token", nullable = false, unique = true)
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID token;
+    @OneToOne(mappedBy = "user", optional = true, cascade = CascadeType.ALL)
+    private Transaction activeTransaction;
 
     public User(){
         super();
     }
 
+    public void lock(){
+        this.isBlocked = true;
+    }
+    public void unlock(){
+        this.isBlocked = false;
+    }
     public int getId() {
         return id;
     }
@@ -105,5 +113,13 @@ public class User {
 
     public void setToken(UUID token) {
         this.token = token;
+    }
+
+    public Transaction getActiveTransaction() {
+        return activeTransaction;
+    }
+
+    public void setActiveTransaction(Transaction activeTransaction) {
+        this.activeTransaction = activeTransaction;
     }
 }
