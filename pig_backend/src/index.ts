@@ -144,7 +144,7 @@ app.get(
 );
 
 app.get(
-  "/user-private/",
+  "/userPrivate/",
   async (
     req: Request<AccountWithOneIdentifier & { secret_token: string }>,
     res: Response<User | { error: string }>
@@ -199,7 +199,7 @@ app.post("/user", async (req: Request<{ cbu: string }>, res) => {
   }
 });
 
-app.post("/make-transaction", async (req: Request<Transaction>, res) => {
+app.post("/makeTransaction", async (req: Request<Transaction>, res) => {
   try {
     const originCBU = await fromIdentifierToCBU(
       req.body.originIdentifier,
@@ -288,7 +288,7 @@ app.get(
 );
 
 app.get(
-  "/recent-contacts",
+  "/recentContacts",
   async (
     req: Request<AccountWithOneIdentifier & { secret_token: string }>,
     res: Response<{ contacts: UserPublic[] } | { error: string }>
