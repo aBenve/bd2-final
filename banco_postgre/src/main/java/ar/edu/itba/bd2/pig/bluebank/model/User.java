@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -26,6 +27,9 @@ public class User {
     private String passwordHash;
     @Column(name = "is_blocked")
     private boolean isBlocked = false;
+    @Column(name = "secret_token", nullable = false, unique = true)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID token;
 
     public User(){
         super();
@@ -85,5 +89,21 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public boolean isBlocked() {
+        return isBlocked;
+    }
+
+    public void setBlocked(boolean blocked) {
+        isBlocked = blocked;
+    }
+
+    public UUID getToken() {
+        return token;
+    }
+
+    public void setToken(UUID token) {
+        this.token = token;
     }
 }
