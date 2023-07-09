@@ -1,8 +1,8 @@
-import Pool from 'pg-pool';
-import pg from 'pg';
+import Pool from "pg-pool";
+import pg from "pg";
 
 export default function createPostgreTable(pool: Pool<pg.Client>) {
-	const query = `
+  const query = `
     CREATE TABLE IF NOT EXISTS users (
         nombre VARCHAR(255) NOT NULL,
         uuid CHAR(36) PRIMARY KEY,
@@ -15,13 +15,13 @@ export default function createPostgreTable(pool: Pool<pg.Client>) {
     
         CONSTRAINT cbu_unique UNIQUE (cbu)
     );`;
-	pool
-		.query(query)
-		.then(res => {
-			console.log('Table created successfully');
-		})
-		.catch(err => {
-			console.error(err);
-			pool.end();
-		});
+  pool
+    .query(query)
+    .then((res) => {
+      console.log("Table created successfully");
+    })
+    .catch((err) => {
+      console.error(err);
+      pool.end();
+    });
 }

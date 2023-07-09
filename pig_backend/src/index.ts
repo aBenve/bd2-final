@@ -4,8 +4,13 @@ import { v4 as uuidv4 } from "uuid";
 import Pool from "pg-pool";
 import pg from "pg";
 import createPostgreTable from "./createPostgreTable.ts";
+import {
+  checkIfUserIsValid,
+  getPrivateInfo,
+  iniciateTransaction,
+} from "./bankAPIMiddleware.ts";
 
-interface User {
+export interface User {
   name: string;
   uuid: string;
   email: string;
@@ -46,25 +51,31 @@ function fromIdentifierToCBU(
   pool: Pool<pg.Client>
 ) {
   if (accountIdentifier.uuid)
-    return pool.query("SELECT cbu FROM users WHERE uuid = $1", [
-      accountIdentifier.uuid,
-    ]);
+    return pool
+      .query("SELECT cbu FROM users WHERE uuid = $1", [accountIdentifier.uuid])
+      .then((res) => res.rows[0]);
   if (accountIdentifier.name)
-    return pool.query("SELECT cbu FROM users WHERE nombre = $1", [
-      accountIdentifier.name,
-    ]);
+    return pool
+      .query("SELECT cbu FROM users WHERE nombre = $1", [
+        accountIdentifier.name,
+      ])
+      .then((res) => res.rows[0]);
   if (accountIdentifier.cbu)
-    return pool.query("SELECT cbu FROM users WHERE cbu = $1", [
-      accountIdentifier.cbu,
-    ]);
+    return pool
+      .query("SELECT cbu FROM users WHERE cbu = $1", [accountIdentifier.cbu])
+      .then((res) => res.rows[0]);
   if (accountIdentifier.phone)
-    return pool.query("SELECT cbu FROM users WHERE phone = $1", [
-      accountIdentifier.phone,
-    ]);
+    return pool
+      .query("SELECT cbu FROM users WHERE phone = $1", [
+        accountIdentifier.phone,
+      ])
+      .then((res) => res.rows[0]);
   if (accountIdentifier.email)
-    return pool.query("SELECT cbu FROM users WHERE email = $1", [
-      accountIdentifier.email,
-    ]);
+    return pool
+      .query("SELECT cbu FROM users WHERE email = $1", [
+        accountIdentifier.email,
+      ])
+      .then((res) => res.rows[0]);
 }
 
 const app = express();
@@ -84,7 +95,7 @@ while (true) {
   } catch {}
 }
 
-createPostgreTable(pool);
+await createPostgreTable(pool);
 
 // await new Promise(r => setTimeout(r, 12 * 1000));
 let channel: amqp.Channel;
@@ -119,8 +130,12 @@ app.get(
     res: Response<UserPublic | { error: string }>
   ) => {
     try {
-      const result = await fromIdentifierToCBU(req.body, pool);
-      res.json(result.rows[0] as UserPublic);
+      const cbu = await fromIdentifierToCBU(req.body, pool);
+      if (!cbu) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+      res.json(cbu.rows[0] as UserPublic);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Internal Server Error" });
@@ -135,9 +150,15 @@ app.get(
     res: Response<User | { error: string }>
   ) => {
     try {
-      const cbu = await fromIdentifierToCBU(req.body, pool);
+      const cbu = (await fromIdentifierToCBU(req.body, pool)) as string;
       const token = req.body.secret_token;
-      // Ask BANK API FOR USER PRIVATE INFO
+
+      if (!(await checkIfUserIsValid(cbu, token))) {
+        res.status(401).json({ error: "User not Valid" });
+        return;
+      }
+      const user = await getPrivateInfo(cbu, token);
+      res.status(200).json(user);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Internal Server Error" });
@@ -179,23 +200,41 @@ app.post("/user", async (req: Request<{ cbu: string }>, res) => {
 });
 
 app.post("/make-transaction", async (req: Request<Transaction>, res) => {
-  const originCBU = await fromIdentifierToCBU(req.body.originIdentifier, pool);
-  const destinationCBU = await fromIdentifierToCBU(
-    req.body.destinationIdentifier,
-    pool
-  );
-  const userQueueName = originCBU + "-transactions";
-  channel.assertQueue(userQueueName, { durable: true });
-  // ADD TRANSACTION TO USERQUEUE AND GLOBAL QUEUE
+  try {
+    const originCBU = await fromIdentifierToCBU(
+      req.body.originIdentifier,
+      pool
+    );
+    const destinationCBU = await fromIdentifierToCBU(
+      req.body.destinationIdentifier,
+      pool
+    );
+    const userQueueName = originCBU + "-transactions";
+    channel.assertQueue(userQueueName, { durable: true });
 
-  // CHECK IF BOTH CBU EXISTS WITH THE BANKS
-  // ASK BANK API FOR TRANSACTION
-  // IF TRANSACTION IS SUCCESSFUL
-  // SEND TRANSACTION TO RABBITMQ
-  //channel.sendToQueue(queuename, Buffer.from(msg), {persistent: true});
+    if (iniciateTransaction(originCBU, destinationCBU, req.body.amount)) {
+      const msg = {
+        originCBU,
+        destinationCBU,
+        amount: req.body.amount,
+        date: new Date(),
+      };
+      channel.sendToQueue(queueName, Buffer.from(JSON.stringify(msg)), {
+        persistent: true,
+      });
+      channel.sendToQueue(userQueueName, Buffer.from(JSON.stringify(msg)), {
+        persistent: true,
+      });
+      res.status(200).json({ message: "Transaction successful" });
+    }
 
-  // ELSE
-  // RETURN ERROR
+    res
+      .status(500)
+      .json({ error: "Internal Server Error Making The Transaction" });
+  } catch (error) {
+    console.error("Error making transaction:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 // The transactions are stored in the rabbitmq queue
@@ -209,12 +248,18 @@ app.get(
       const cbu = await fromIdentifierToCBU(req.body, pool);
       const token = req.body.secret_token;
 
+      if (!cbu) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
       const userQueueName = cbu + "-transactions";
-      // ASK BANK API IF USER IS VALID
-      // IF USER IS VALID
-      // ASK RABBITMQ FOR TRANSACTIONS
+
+      if (!(await checkIfUserIsValid(cbu, token))) {
+        return res.status(404).json({ error: "User not valid" });
+      }
       const userQueueSize = await channel.checkQueue(userQueueName);
-      const res = {
+      const toRes = {
         transactions: [],
       };
       Array(userQueueSize).forEach(() => {
@@ -223,7 +268,7 @@ app.get(
           (msg) => {
             if (msg !== null) {
               console.log(msg.content.toString()); // TODO: SACAR
-              res.transactions.push(
+              toRes.transactions.push(
                 JSON.parse(msg.content.toString()) as Transaction
               );
             }
@@ -234,13 +279,11 @@ app.get(
       // PARA EVITAR QUE SE BORREN LOS MENSAJES DE LA COLA
       channel.cancel(userQueueName);
 
-      // ELSE
-      // RETURN ERROR
+      return res.status(200).json(toRes);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Internal Server Error" });
     }
-    return res;
   }
 );
 
@@ -253,11 +296,14 @@ app.get(
     try {
       const cbu = await fromIdentifierToCBU(req.body, pool);
       const token = req.body.secret_token;
-      // ASK BANK API IF USER IS VALID
-      // IF USER IS VALID
-      // ASK RABBITMQ FOR TRANSACTIONS
+
+      if (!(await checkIfUserIsValid(cbu, token))) {
+        res.status(404).json({ error: "User not valid" });
+        return;
+      }
+
       const userQueueName = cbu + "-transactions";
-      const res = {
+      const toRes = {
         contacts: [],
       };
       Array(userQueueSize).forEach(() => {
@@ -267,9 +313,9 @@ app.get(
             if (msg !== null) {
               const transaction = JSON.parse(msg.content.toString());
               if (transaction.originCBU === cbu) {
-                res.contacts.push(transaction.destinationIdentifier);
+                toRes.contacts.push(transaction.destinationIdentifier);
               } else {
-                res.contacts.push(transaction.originIdentifier);
+                toRes.contacts.push(transaction.originIdentifier);
               }
             }
           },
@@ -278,9 +324,8 @@ app.get(
       });
       // PARA EVITAR QUE SE BORREN LOS MENSAJES DE LA COLA
       channel.cancel(userQueueName);
-      // ELSE
-      // RETURN ERROR
-      return res;
+
+      return res.status(200).json(toRes);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Internal Server Error" });
