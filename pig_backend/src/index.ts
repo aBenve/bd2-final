@@ -176,7 +176,6 @@ app.post("/user", async (req: Request<{ cbu: string }>, res) => {
     const email = "";
     const phone = "123456789";
     const secret_token = "123456789";
-    const alias = "Juan Perez";
 
     const query = `
             INSERT INTO users (name, uuid, email, phone, cbu, secret_token, alias, creation_date)
@@ -190,7 +189,7 @@ app.post("/user", async (req: Request<{ cbu: string }>, res) => {
       phone,
       cbu,
       secret_token,
-      alias,
+      "",
       creation_date,
     ]);
   } catch (error) {

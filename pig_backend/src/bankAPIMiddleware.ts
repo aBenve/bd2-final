@@ -1,5 +1,8 @@
 import { User } from "index";
 
+const POSTGRE_BANK_API = process.env.POSTGRE_BANK_API;
+const MONGO_BANK_API = process.env.MONGO_BANK_API;
+
 export function checkIfUserExists(cbu: string): Boolean {
   return true;
 }
