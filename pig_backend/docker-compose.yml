@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: 123
       POSTGRES_DB: pig_backend_users
     ports:
-      - 5432:5432
+      - 5431:5431
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -19,16 +19,16 @@ services:
       - 5672:5672
       - 15672:15672
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: always
-    ports:
-      - 3000:3000
-    depends_on:
-      - postgres
-      - rabbitmq
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   restart: always
+  #   ports:
+  #     - 3000:3000
+  #   depends_on:
+  #     - postgres
+  #     - rabbitmq
 
 volumes:
   pgdata:
