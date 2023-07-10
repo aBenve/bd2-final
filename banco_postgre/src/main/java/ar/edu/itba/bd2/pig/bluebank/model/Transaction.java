@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -30,9 +31,10 @@ public class Transaction {
         super();
     }
 
-    public void complete(){
+    public void complete() {
         this.isCompleted = true;
     }
+
     public UUID getTransactionId() {
         return transactionId;
     }
@@ -79,5 +81,17 @@ public class Transaction {
 
     public void setRole(TransactionRole role) {
         this.role = role;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Transaction that)) return false;
+        return userId == that.userId && Objects.equals(transactionId, that.transactionId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(transactionId, userId);
     }
 }
