@@ -51,6 +51,18 @@ public class MainController {
         return userRepository.findAll().stream().map(UserDto::fromUser).toList();
     }
 
+    @GetMapping("/users/{id}/transaction")
+    public TransactionDto getUserTransaction(@PathVariable(name = "id") int userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+        Transaction transaction = Optional.ofNullable(user.getActiveTransaction())
+                .orElseThrow(() -> new ResourceNotFoundException(String.format("User %s has no active transaction.", user.getCbu())));
+
+        return TransactionDto.fromTransaction(transaction);
+    }
+
+    // TODO: add endpoints for user management
+
     @GetMapping("/getUser")
     public UserDto getUser(@Valid UserAccountRequest accountRequest){
         return UserDto.fromUser(
