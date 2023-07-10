@@ -9,9 +9,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "user_active_transactions")
 public class Transaction {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "transaction_id")
     private UUID transactionId;
+    @Id
     @Column(name = "user_id", unique = true, nullable = false)
     private int userId;
     @OneToOne(fetch = FetchType.LAZY, cascade = {}, optional = false)
@@ -22,6 +22,9 @@ public class Transaction {
     private BigDecimal amount;
     @Column(name = "is_completed")
     private boolean isCompleted;
+    @Column(name = "role")
+    @Enumerated()
+    private TransactionRole role;
 
     public Transaction() {
         super();
@@ -38,20 +41,20 @@ public class Transaction {
         this.transactionId = transactionId;
     }
 
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
     public BigDecimal getAmount() {
         return amount;
     }
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public boolean isCompleted() {
+        return isCompleted;
+    }
+
+    public void setCompleted(boolean completed) {
+        isCompleted = completed;
     }
 
     public int getUserId() {
@@ -62,11 +65,19 @@ public class Transaction {
         this.userId = userId;
     }
 
-    public boolean isCompleted() {
-        return isCompleted;
+    public User getUser() {
+        return user;
     }
 
-    public void setCompleted(boolean completed) {
-        isCompleted = completed;
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public TransactionRole getRole() {
+        return role;
+    }
+
+    public void setRole(TransactionRole role) {
+        this.role = role;
     }
 }

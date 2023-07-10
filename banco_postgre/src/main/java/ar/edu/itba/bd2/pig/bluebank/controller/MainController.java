@@ -2,6 +2,7 @@ package ar.edu.itba.bd2.pig.bluebank.controller;
 
 import ar.edu.itba.bd2.pig.bluebank.Dto.*;
 import ar.edu.itba.bd2.pig.bluebank.model.Transaction;
+import ar.edu.itba.bd2.pig.bluebank.model.TransactionRole;
 import ar.edu.itba.bd2.pig.bluebank.model.User;
 import ar.edu.itba.bd2.pig.bluebank.repository.TransactionRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.UserRepository;
@@ -13,9 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/")
@@ -51,15 +50,21 @@ public class MainController {
     /**
      * Verifies the given authentication credentials and returns the user's info, including
      * a secret token to use for authentication in later requests.
-     * @param verificationRequest
+     * @param authorizationRequest
      */
-    @PostMapping("/verifyUser")
-    public PrivateUserWithTokenDto verifyUser(@Valid @RequestBody UserVerificationRequest verificationRequest){
-        User user = userRepository.findByCbu(verificationRequest.getCbu()).orElseThrow();
-        if(!user.getPasswordHash().equals(verificationRequest.getPasswordHash()))
+    @PostMapping("/authorizeUser")
+    public PrivateUserWithTokenDto authorizeUser(@Valid @RequestBody UserAuthorizationRequest authorizationRequest){
+        User user = userRepository.findByCbu(authorizationRequest.getCbu()).orElseThrow();
+
+        if(!passwordEncoder.matches(authorizationRequest.getPassword(), user.getPasswordHash()))
             throw new RuntimeException();
 
         return PrivateUserWithTokenDto.fromUser(user);
+    }
+
+    @PostMapping("/verifyUser")
+    public void verifyUser(@Valid @RequestBody UserAuthenticationRequest authenticationRequest){
+        User user = authenticateUser(authenticationRequest).orElseThrow();
     }
 
     /**
@@ -82,7 +87,6 @@ public class MainController {
     @PostMapping("/addFunds")
     public UserFundsDto addFunds(@Valid @RequestBody FundsRequest fundsRequest){
         User user = userRepository.findByCbu(fundsRequest.getCbu()).orElseThrow();
-        // TODO: check for transaction
         Transaction transaction = Optional.of(user.getActiveTransaction()).orElseThrow();
         if(
                 !transaction.getTransactionId().equals(UUID.fromString(fundsRequest.getTransactionId()))
@@ -129,33 +133,70 @@ public class MainController {
 
     @PostMapping("/initiateTransaction")
     public String initiateTransaction(@Valid @RequestBody TransactionRequest transactionRequest){
-        User user = userRepository.findByCbu(transactionRequest.getCbu()).orElseThrow();
+        Optional<User> originUser = userRepository.findByCbu(transactionRequest.getOriginCbu());
+        Optional<User> destinationUser = userRepository.findByCbu(transactionRequest.getDestinationCbu());
 
-        if(user.getActiveTransaction() != null)
+        if(originUser.isEmpty() && destinationUser.isEmpty())
             throw new RuntimeException();
-        // Lock account
-        user.lock();
-        User lockedUser = userRepository.save(user);
-        // Create Transaction
-        final Transaction newTransaction = new Transaction();
-        newTransaction.setAmount(parseBigDecimal(transactionRequest.getAmount()));
-        newTransaction.setUserId(lockedUser.getId());
-        Transaction createdTransaction = transactionRepository.save(newTransaction);
 
-        return createdTransaction.getTransactionId().toString();
+        if(originUser.isPresent() && destinationUser.isPresent() && originUser.get().equals(destinationUser.get()))
+            throw new RuntimeException();
+
+        if(
+                (originUser.isPresent() && originUser.get().getActiveTransaction() != null) || (destinationUser.isPresent() && destinationUser.get().getActiveTransaction() != null)
+        )
+            throw new RuntimeException(); // There's already an active transaction
+
+        final Transaction originTransaction = new Transaction();
+        final Transaction destinationTransaction = new Transaction();
+        final UUID transactionID = UUID.randomUUID();
+        // Lock account
+        originUser.ifPresent(user -> {
+            user.lock();
+            userRepository.save(user);
+            originTransaction.setUserId(user.getId());
+            originTransaction.setRole(TransactionRole.ORIGIN);
+        });
+        destinationUser.ifPresent(user -> {
+            user.lock();
+            userRepository.save(user);
+            destinationTransaction.setUserId(user.getId());
+            destinationTransaction.setRole(TransactionRole.DESTINATION);
+        });
+        // Create Transaction
+        originTransaction.setAmount(parseBigDecimal(transactionRequest.getAmount()));
+        destinationTransaction.setAmount(parseBigDecimal(transactionRequest.getAmount()));
+
+        originTransaction.setTransactionId(transactionID);
+        destinationTransaction.setTransactionId(transactionID);
+
+        transactionRepository.saveAll(Arrays.asList(originTransaction, destinationTransaction));
+
+        return transactionID.toString();
     }
 
     @PostMapping("/endTransaction")
     public void endTransaction(@Valid @RequestBody @org.hibernate.validator.constraints.UUID String transactionId){
-        Transaction transaction = transactionRepository.findById(UUID.fromString(transactionId)).orElseThrow();
-        User user = transaction.getUser();
+        Collection<Transaction> transactions = transactionRepository.findDistinctByTransactionId(UUID.fromString(transactionId));
+        Transaction originTransaction = transactions.stream().filter(t -> t.getRole().equals(TransactionRole.ORIGIN)).findFirst().orElseThrow();
+        Transaction destinationTransaction = transactions.stream().filter(t -> t.getRole().equals(TransactionRole.DESTINATION)).findFirst().orElseThrow();
 
-        // Remove transaction
-        transactionRepository.delete(transaction);
-        user.setActiveTransaction(null);
-        // Unlock account
-        user.unlock();
-        User unlockedUser = userRepository.save(user);
+        Optional<User> originUser = Optional.of(originTransaction.getUser());
+        Optional<User> destinationUser = Optional.of(destinationTransaction.getUser());
+
+        // Remove transaction and unlock users
+        transactionRepository.delete(originTransaction);
+        transactionRepository.delete(destinationTransaction);
+        originUser.ifPresent(user -> {
+            user.setActiveTransaction(null);
+            user.unlock();
+            User unlockedUser = userRepository.save(user);
+        });
+        destinationUser.ifPresent(user -> {
+            user.setActiveTransaction(null);
+            user.unlock();
+            User unlockedUser = userRepository.save(user);
+        });
     }
 
     private static BigDecimal parseBigDecimal(String number){
