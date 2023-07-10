@@ -38,12 +38,12 @@ public class MainController {
     }
 
     @GetMapping("/getUser")
-    public UserDto getUser(@Valid @RequestBody UserAccountRequest accountRequest){
+    public UserDto getUser(@Valid UserAccountRequest accountRequest){
         return UserDto.fromUser(userRepository.findByCbu(accountRequest.getCbu()).orElseThrow()); // TODO: custom exception
     }
 
     @GetMapping("/isUser")
-    public void isUser(@Valid @RequestBody UserAccountRequest accountRequest){
+    public void isUser(@Valid UserAccountRequest accountRequest){
         userRepository.findByCbu(accountRequest.getCbu()).orElseThrow();
     }
 
@@ -73,13 +73,13 @@ public class MainController {
      * @return
      */
     @GetMapping("/userPrivate")
-    public PrivateUserDto getPrivateUser(@Valid @RequestBody UserAuthenticationRequest authenticationRequest){
+    public PrivateUserDto getPrivateUser(@Valid UserAuthenticationRequest authenticationRequest){
         User user = authenticateUser(authenticationRequest).orElseThrow();
         return PrivateUserDto.fromUser(user);
     }
 
     @GetMapping("/checkFunds")
-    public UserFundsDto checkFunds(@Valid @RequestBody UserAuthenticationRequest authenticationRequest){
+    public UserFundsDto checkFunds(@Valid UserAuthenticationRequest authenticationRequest){
         User user = authenticateUser(authenticationRequest).orElseThrow();
         return UserFundsDto.fromUser(user);
     }
