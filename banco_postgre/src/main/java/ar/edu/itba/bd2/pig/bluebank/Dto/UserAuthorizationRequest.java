@@ -3,13 +3,13 @@ package ar.edu.itba.bd2.pig.bluebank.Dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public class UserVerificationRequest {
+public class UserAuthorizationRequest {
     @Size(min = 22, max = 22)
     @NotNull
     private String cbu;
 
     @NotNull
-    private String passwordHash;
+    private String password;
 
     public String getCbu() {
         return cbu;
@@ -19,11 +19,11 @@ public class UserVerificationRequest {
         this.cbu = cbu;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getPassword() {
+        return password;
     }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+    public void setPassword(String password) {
+        this.password = password;
     }
 }
