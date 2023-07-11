@@ -1,6 +1,7 @@
 import Pool from "pg-pool";
 import pg from "pg";
-import { AccountWithOneIdentifier } from "types";
+import amqp from "amqplib";
+import { AccountWithOneIdentifier } from "./types.js";
 
 export function fromIdentifierToCBU(
   accountIdentifier: AccountWithOneIdentifier,
@@ -68,4 +69,29 @@ export function addUserToDB(pool: Pool<pg.Client>) {
 
   `;
   pool.query(query);
+}
+
+export async function connectToRabit(channel: amqp.Channel) {
+  while (true) {
+    try {
+      const amqpConnection = await amqp.connect("amqp://localhost:5672");
+      channel = await amqpConnection.createChannel();
+      break;
+    } catch {}
+  }
+}
+
+export async function connectToPostgre(pool: Pool<pg.Client>) {
+  while (true) {
+    try {
+      pool = new Pool({
+        user: "usuario",
+        password: "123",
+        host: "localhost",
+        port: 5431,
+        database: "pig_backend_users",
+      });
+      break;
+    } catch {}
+  }
 }

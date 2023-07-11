@@ -1,5 +1,5 @@
-import { User } from "./types.ts";
-import fetch, { BodyInit, RequestInit, ResponseInit } from "node-fetch";
+import { User } from "./types.js";
+import fetch, { RequestInit } from "node-fetch";
 import "dotenv/config";
 
 const POSTGRE_BANK_API = process.env.POSTGRE_BANK_API;

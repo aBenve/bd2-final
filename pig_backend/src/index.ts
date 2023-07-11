@@ -3,14 +3,24 @@ import amqp from "amqplib";
 import { v4 as uuidv4 } from "uuid";
 import Pool from "pg-pool";
 import pg from "pg";
-import { createPostgreTable, addUserToDB } from "./utils.ts";
 import {
   checkIfUserIsValid,
   getPrivateInfo,
   iniciateTransaction,
-} from "./bankAPIMiddleware.ts";
-import { AccountWithOneIdentifier, Transaction, User, UserPublic } from "types";
-import { fromIdentifierToCBU } from "./utils.ts";
+} from "./bankAPIMiddleware.js";
+import {
+  AccountWithOneIdentifier,
+  Transaction,
+  User,
+  UserPublic,
+} from "./types.js";
+import {
+  createPostgreTable,
+  addUserToDB,
+  fromIdentifierToCBU,
+  connectToPostgre,
+  connectToRabit,
+} from "./utils.js";
 
 const app = express();
 app.use(express.json());
@@ -19,34 +29,18 @@ app.use(express.urlencoded({ extended: true }));
 const port = 3000;
 let pool: Pool<pg.Client>;
 
-while (true) {
-  try {
-    pool = new Pool({
-      user: "usuario",
-      password: "123",
-      host: "localhost",
-      port: 5431,
-      database: "pig_backend_users",
-    });
-    break;
-  } catch {}
-}
+connectToPostgre(pool);
 
 createPostgreTable(pool);
 addUserToDB(pool);
 
 // await new Promise(r => setTimeout(r, 12 * 1000));
 let channel: amqp.Channel;
+
 const queueName = "transactions";
 const userQueueSize = 20;
-while (true) {
-  try {
-    const amqpConnection = await amqp.connect("amqp://localhost:5672");
-    channel = await amqpConnection.createChannel();
-    break;
-  } catch {}
-}
 
+connectToRabit(channel);
 channel.assertQueue(queueName, { durable: true });
 
 channel.on("error", function (err) {
