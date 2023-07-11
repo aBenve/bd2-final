@@ -8,7 +8,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @SpringBootApplication
 public class BlueBankApplication {
-	//TODO: implement global error handler
 	public static void main(String[] args) {
 		SpringApplication.run(BlueBankApplication.class, args);
 	}
