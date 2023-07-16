@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node dist/index.js",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\""
+    "start": "tsc --noEmit false && node dist/index.js",
+    "dev": "concurrently \"npx tsc --noEmit false --watch\" \"nodemon -q dist/index.js\""
   },
   "type": "module",
   "author": "",

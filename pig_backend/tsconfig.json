@@ -10,8 +10,8 @@
     "paths": {
       "*": ["*"]
     },
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    // "allowImportingTsExtensions": true,
+    // "noEmit": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
