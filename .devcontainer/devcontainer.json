@@ -1,0 +1,27 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/universal:2",
+	"features": {
+	// features for Blue Bank
+	"ghcr.io/devcontainers-contrib/features/postgres-asdf:1": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers-contrib/features/springboot-sdkman:2": {
+			"version": "latest",
+			"jdkVersion": "17",
+			"jdkDistro": "open"
+		}
+	/////////////////////////////////////
+	},
+
+	"forwardPorts": [
+		8080
+	],
+
+	"portsAttributes": {
+		"8080": {
+			"label": "Blue Bank",
+			"onAutoForward": "notify"
+		}
+	}
+
+}
