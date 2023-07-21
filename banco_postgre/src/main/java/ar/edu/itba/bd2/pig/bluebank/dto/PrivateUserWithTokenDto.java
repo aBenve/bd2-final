@@ -1,4 +1,4 @@
-package ar.edu.itba.bd2.pig.bluebank.Dto;
+package ar.edu.itba.bd2.pig.bluebank.dto;
 
 import ar.edu.itba.bd2.pig.bluebank.model.User;
 

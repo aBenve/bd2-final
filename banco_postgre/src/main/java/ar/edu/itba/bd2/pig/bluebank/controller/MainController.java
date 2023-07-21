@@ -1,20 +1,21 @@
 package ar.edu.itba.bd2.pig.bluebank.controller;
 
-import ar.edu.itba.bd2.pig.bluebank.Dto.*;
-import ar.edu.itba.bd2.pig.bluebank.exceptions.BadAuthenticationCredentialsException;
-import ar.edu.itba.bd2.pig.bluebank.exceptions.BadAuthorizationCredentialsException;
-import ar.edu.itba.bd2.pig.bluebank.exceptions.IllegalOperationException;
-import ar.edu.itba.bd2.pig.bluebank.exceptions.ResourceNotFoundException;
+import ar.edu.itba.bd2.pig.bluebank.dto.*;
+import ar.edu.itba.bd2.pig.bluebank.exceptions.*;
+import ar.edu.itba.bd2.pig.bluebank.form.UserForm;
 import ar.edu.itba.bd2.pig.bluebank.model.Transaction;
 import ar.edu.itba.bd2.pig.bluebank.model.TransactionRole;
 import ar.edu.itba.bd2.pig.bluebank.model.User;
 import ar.edu.itba.bd2.pig.bluebank.repository.TransactionRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -38,6 +39,7 @@ public class MainController {
     private final TransactionRepository transactionRepository;
     private final PasswordEncoder passwordEncoder;
 
+
     @Autowired
     public MainController(UserRepository userRepository, TransactionRepository transactionRepository, PasswordEncoder passwordEncoder){
         this.userRepository = userRepository;
@@ -45,27 +47,51 @@ public class MainController {
         this.transactionRepository = transactionRepository;
     }
 
-    // TODO: remove
     @GetMapping("/users")
-    public List<UserDto> getUsers(){
-        return userRepository.findAll().stream().map(UserDto::fromUser).toList();
+    public List<UserDTO> getUsers(){
+        return userRepository.findAll().stream().map(UserDTO::fromUser).toList();
+    }
+
+    @PostMapping("/users")
+    public void createUser(@Valid @RequestBody UserForm userForm, HttpServletResponse httpServletResponse){
+        User newUser = new User(userForm.getCbu(), userForm.getName(), userForm.getEmail(), userForm.getPhoneNumber(), passwordEncoder.encode(userForm.getPassword()));
+        User createdUser = userRepository.save(newUser);
+        String resourceLocation = ServletUriComponentsBuilder.fromCurrentContextPath().pathSegment("users", String.valueOf(createdUser.getId())).toUriString();
+        httpServletResponse.setStatus(HttpServletResponse.SC_CREATED);
+        httpServletResponse.addHeader(HttpHeaders.LOCATION, resourceLocation);
+    }
+
+    @GetMapping("/users/{id}")
+    public User getUser(@PathVariable("id") int id){
+        return userRepository.findById(id).orElseThrow(UserNotFoundException::new);
+    }
+
+    @DeleteMapping("/users/{id}")
+    public String deleteUser(@PathVariable("id") int id, HttpServletResponse httpServletResponse){
+        List<User> removed = userRepository.removeById(id);
+        if(removed.isEmpty()){
+            httpServletResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return "User not found";
+        }
+        httpServletResponse.setStatus(HttpServletResponse.SC_OK);
+        return "Goodbye " + removed.get(0) + "!!!!";
     }
 
     @GetMapping("/users/{id}/transaction")
-    public TransactionDto getUserTransaction(@PathVariable(name = "id") int userId){
+    public TransactionDTO getUserTransaction(@PathVariable(name = "id") int userId){
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found."));
         Transaction transaction = Optional.ofNullable(user.getActiveTransaction())
                 .orElseThrow(() -> new ResourceNotFoundException(String.format("User %s has no active transaction.", user.getCbu())));
 
-        return TransactionDto.fromTransaction(transaction);
+        return TransactionDTO.fromTransaction(transaction);
     }
 
     // TODO: add endpoints for user management
 
     @GetMapping("/getUser")
-    public UserDto getUser(@Valid UserAccountRequest accountRequest){
-        return UserDto.fromUser(
+    public UserDTO getUser(@Valid UserAccountRequest accountRequest){
+        return UserDTO.fromUser(
                 userRepository.findByCbu(accountRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(accountRequest.getCbu()))
         );
@@ -104,19 +130,19 @@ public class MainController {
      * @return
      */
     @GetMapping("/userPrivate")
-    public PrivateUserDto getPrivateUser(@Valid UserAuthenticationRequest authenticationRequest){
+    public PrivateUserDTO getPrivateUser(@Valid UserAuthenticationRequest authenticationRequest){
         User user = authenticateUser(authenticationRequest);
-        return PrivateUserDto.fromUser(user);
+        return PrivateUserDTO.fromUser(user);
     }
 
     @GetMapping("/checkFunds")
-    public UserFundsDto checkFunds(@Valid UserAuthenticationRequest authenticationRequest){
+    public UserFundsDTO checkFunds(@Valid UserAuthenticationRequest authenticationRequest){
         User user = authenticateUser(authenticationRequest);
-        return UserFundsDto.fromUser(user);
+        return UserFundsDTO.fromUser(user);
     }
 
     @PostMapping("/addFunds")
-    public UserFundsDto addFunds(@Valid @RequestBody FundsRequest fundsRequest){
+    public UserFundsDTO addFunds(@Valid @RequestBody FundsRequest fundsRequest){
         User user = userRepository.findByCbu(fundsRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
         Transaction transaction = Optional.ofNullable(user.getActiveTransaction())
@@ -129,11 +155,11 @@ public class MainController {
         transaction.complete();
         transactionRepository.save(transaction);
 
-        return UserFundsDto.fromUser(user);
+        return UserFundsDTO.fromUser(user);
     }
 
     @PostMapping("/removeFunds")
-    public UserFundsDto removeFunds(@Valid @RequestBody FundsRequest fundsRequest){
+    public UserFundsDTO removeFunds(@Valid @RequestBody FundsRequest fundsRequest){
         User user = userRepository.findByCbu(fundsRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
 
@@ -147,7 +173,7 @@ public class MainController {
         transaction.complete();
         transactionRepository.save(transaction);
 
-        return UserFundsDto.fromUser(user);
+        return UserFundsDTO.fromUser(user);
     }
 
     @PostMapping("/initiateTransaction")

@@ -2,6 +2,8 @@ package ar.edu.itba.bd2.pig.bluebank.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -12,6 +14,7 @@ import java.util.UUID;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(columnDefinition = "serial")
     private int id;
     @Column(name = "cbu", length = 22, nullable = false, unique = true)
     private String cbu;
@@ -28,14 +31,23 @@ public class User {
     private String passwordHash;
     @Column(name = "is_blocked")
     private boolean isBlocked = false;
-    @Column(name = "secret_token", nullable = false, unique = true)
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "secret_token", unique = true, nullable = false, columnDefinition = "default gen_random_uuid()")
+    @ColumnDefault(value = "gen_random_uuid()")
+    @Generated
     private UUID token;
     @OneToOne(mappedBy = "user", optional = true, cascade = CascadeType.ALL)
     private Transaction activeTransaction;
 
     public User(){
         super();
+    }
+
+    public User(String cbu, String name, String email, String phoneNumber, String passwordHash) {
+        this.cbu = cbu;
+        this.name = name;
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+        this.passwordHash = passwordHash;
     }
 
     public void lock(){
