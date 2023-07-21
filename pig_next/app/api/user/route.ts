@@ -1,24 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { AccountWithOneIdentifierRequest } from "../../../types";
 import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
-import pgPool from "../../../service/postgre";
+import { client } from "../../../service/postgre";
 
 export async function GET(req: AccountWithOneIdentifierRequest) {
+  const searchParams = new URL(req.nextUrl).searchParams;
   try {
-    if (!req.body) {
-      NextResponse.json({ error: "Missing body" }, { status: 400 });
-      return;
+    if (!searchParams) {
+      return NextResponse.json({ error: "Missing body" }, { status: 400 });
     }
-    console.log(req);
-    const cbu = await fromIdentifierToCBU(req.body, pgPool); // TODO: change to add all public information
+    const cbu = await fromIdentifierToCBU(searchParams, client); // TODO: change to add all public information
     if (!cbu) {
-      NextResponse.json({ error: "User not found" }, { status: 404 });
-      return;
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    NextResponse.json(cbu);
+    return NextResponse.json(cbu);
   } catch (error) {
     console.error("Error fetching users:", error);
-    NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
-  return NextResponse.json({ page: "/api/user" });
 }

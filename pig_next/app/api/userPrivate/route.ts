@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { AccountWithOneIdentifierAndTokenRequest } from "../../../types";
 import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
-import pgPool from "../../../service/postgre";
+import { client } from "../../../service/postgre";
 import { checkIfUserIsValid, getPrivateInfo } from "../../../utils/middleware";
 
 export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
+  const searchParams = new URL(req.nextUrl).searchParams;
+
   try {
-    const cbu = (await fromIdentifierToCBU(req.body, pgPool)) as string;
-    const token = req.body.secret_token;
+    const cbu = (await fromIdentifierToCBU(searchParams, client)) as string;
+    const token = searchParams.get("secretToken") as string;
 
     if (!(await checkIfUserIsValid(cbu, token))) {
       NextResponse.json({ error: "User not Valid" }, { status: 401 });
