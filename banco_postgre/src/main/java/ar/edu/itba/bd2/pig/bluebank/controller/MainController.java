@@ -119,6 +119,11 @@ public class MainController {
         return PrivateUserWithTokenDto.fromUser(user);
     }
 
+    /**
+     * Verifies that the given authentication credentials are valid.
+     * 
+     * @param authenticationRequest CBU and token
+     */
     @PostMapping("/verifyUser")
     public void verifyUser(@Valid @RequestBody UserAuthenticationRequest authenticationRequest){
         authenticateUser(authenticationRequest);
@@ -178,12 +183,14 @@ public class MainController {
 
     @PostMapping("/initiateTransaction")
     public String initiateTransaction(@Valid @RequestBody TransactionRequest transactionRequest){
-        Optional<User> originUser = userRepository.findByCbu(transactionRequest.getOriginCbu());
-        Optional<User> destinationUser = userRepository.findByCbu(transactionRequest.getDestinationCbu());
+        Optional<User> originUser = userRepository.findByCbu(transactionRequest.getOriginCBU());
+        Optional<User> destinationUser = userRepository.findByCbu(transactionRequest.getDestinationCBU());
 
         // Check that at least one user belongs to the bank
         if(originUser.isEmpty() && destinationUser.isEmpty())
-            throw new ResourceNotFoundException(String.format("Users %s and %s are not registered on Blue Bank. Please include a valid user from this bank.", transactionRequest.getOriginCbu(), transactionRequest.getDestinationCbu()));
+            throw new ResourceNotFoundException(String.format(
+                    "Users %s and %s are not registered on Blue Bank. Please include a valid user from this bank.",
+                    transactionRequest.getOriginCBU(), transactionRequest.getDestinationCBU()));
 
         // Check that origin and destination user are not the same
         if(originUser.isPresent() && destinationUser.isPresent() && originUser.get().equals(destinationUser.get()))
@@ -191,9 +198,13 @@ public class MainController {
 
         // Check that none of the present users have active transactions
         if(originUser.isPresent() && originUser.get().getActiveTransaction() != null)
-            throw new IllegalOperationException(String.format("There is already an active transaction for user %s, please try again later.", transactionRequest.getOriginCbu()));
+            throw new IllegalOperationException(
+                    String.format("There is already an active transaction for user %s, please try again later.",
+                            transactionRequest.getOriginCBU()));
         if(destinationUser.isPresent() && destinationUser.get().getActiveTransaction() != null)
-            throw new IllegalOperationException(String.format("There is already an active transaction for user %s, please try again later.", transactionRequest.getDestinationCbu()));
+            throw new IllegalOperationException(
+                    String.format("There is already an active transaction for user %s, please try again later.",
+                            transactionRequest.getDestinationCBU()));
 
         // Check that funds are enough
         if(originUser.isPresent() && originUser.get().getBalance().compareTo(parseBigDecimal(transactionRequest.getAmount())) < 0)

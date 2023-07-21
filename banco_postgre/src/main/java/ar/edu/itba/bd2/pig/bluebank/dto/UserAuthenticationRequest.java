@@ -3,12 +3,13 @@ package ar.edu.itba.bd2.pig.bluebank.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.UUID;
+import org.hibernate.validator.constraints.UUID.LetterCase;
 
 public class UserAuthenticationRequest {    @Size(min = 22, max = 22)
     @NotNull
     private String cbu;
     @NotNull
-    @UUID
+    @UUID(letterCase = LetterCase.INSENSITIVE)
     private String secretToken;
 
     public String getCbu() {

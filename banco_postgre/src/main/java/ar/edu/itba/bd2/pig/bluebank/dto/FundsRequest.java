@@ -3,6 +3,7 @@ package ar.edu.itba.bd2.pig.bluebank.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.UUID;
+import org.hibernate.validator.constraints.UUID.LetterCase;
 import org.springframework.format.annotation.NumberFormat;
 
 public class FundsRequest {
@@ -14,7 +15,7 @@ public class FundsRequest {
     @NumberFormat(pattern = "###.##")
     private String amount;
     @NotNull
-    @UUID
+    @UUID(letterCase = LetterCase.INSENSITIVE)
     private String transactionId;
 
     public FundsRequest() {

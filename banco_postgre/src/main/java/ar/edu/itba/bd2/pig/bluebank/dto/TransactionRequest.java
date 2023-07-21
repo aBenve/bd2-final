@@ -3,18 +3,19 @@ package ar.edu.itba.bd2.pig.bluebank.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.UUID;
+import org.hibernate.validator.constraints.UUID.LetterCase;
 import org.springframework.format.annotation.NumberFormat;
 
 public class TransactionRequest {
     @NotNull
     @Size(min = 22, max = 22)
-    private String originCbu;
+    private String originCBU;
     @NotNull
     @Size(min = 22, max = 22)
-    private String destinationCbu;
-    @UUID
+    private String destinationCBU;
+    @UUID(letterCase = LetterCase.INSENSITIVE)
     private String originSecretToken;
-    @UUID
+    @UUID(letterCase = LetterCase.INSENSITIVE)
     private String destinationSecretToken;
     @NotNull
     @Size(min = 1, max = 18)
@@ -33,20 +34,20 @@ public class TransactionRequest {
         this.amount = amount;
     }
 
-    public String getOriginCbu() {
-        return originCbu;
+    public String getOriginCBU() {
+        return originCBU;
     }
 
-    public void setOriginCbu(String originCbu) {
-        this.originCbu = originCbu;
+    public void setOriginCBU(String originCbu) {
+        this.originCBU = originCbu;
     }
 
-    public String getDestinationCbu() {
-        return destinationCbu;
+    public String getDestinationCBU() {
+        return destinationCBU;
     }
 
-    public void setDestinationCbu(String destinationCbu) {
-        this.destinationCbu = destinationCbu;
+    public void setDestinationCBU(String destinationCbu) {
+        this.destinationCBU = destinationCbu;
     }
 
     public String getOriginSecretToken() {
