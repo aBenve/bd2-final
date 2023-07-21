@@ -1,13 +1,13 @@
-package ar.edu.itba.bd2.pig.bluebank.Dto;
+package ar.edu.itba.bd2.pig.bluebank.dto;
 
 import ar.edu.itba.bd2.pig.bluebank.model.User;
 
-public class UserDto {
+public class UserDTO {
     private String name;
     private String cbu;
 
-    public static UserDto fromUser(User user){
-        final UserDto userDto = new UserDto();
+    public static UserDTO fromUser(User user){
+        final UserDTO userDto = new UserDTO();
 
         userDto.name = user.getName();
         userDto.cbu = user.getCbu();

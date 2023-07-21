@@ -9,10 +9,16 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User,Integer> {
+    List<User> removeById(@NonNull int id);
+    @Query("select (count(u) > 0) from User u where u.phoneNumber = ?1")
+    boolean existsByPhoneNumber(@NonNull String phoneNumber);
+    @Query("select (count(u) > 0) from User u where u.email = ?1")
+    boolean existsByEmail(@NonNull String email);
     @Transactional
     @Modifying
     @Query("update User u set u.balance = ?1 where u.cbu = ?2")

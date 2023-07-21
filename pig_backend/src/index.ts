@@ -18,8 +18,6 @@ import {
   createPostgreTable,
   addUserToDB,
   fromIdentifierToCBU,
-  connectToPostgre,
-  connectToRabit,
 } from "./utils.js";
 
 const app = express();
@@ -29,8 +27,18 @@ app.use(express.urlencoded({ extended: true }));
 const port = 3000;
 let pool: Pool<pg.Client>;
 
-connectToPostgre(pool);
-
+while (true) {
+  try {
+    pool = new Pool({
+      user: "usuario",
+      password: "123",
+      host: "localhost",
+      port: 5431,
+      database: "pig_backend_users",
+    });
+    break;
+  } catch {}
+}
 createPostgreTable(pool);
 addUserToDB(pool);
 
@@ -40,7 +48,15 @@ let channel: amqp.Channel;
 const queueName = "transactions";
 const userQueueSize = 20;
 
-connectToRabit(channel);
+while (true) {
+  try {
+    const amqpConnection = await amqp.connect("amqp://localhost:5672");
+    channel = await amqpConnection.createChannel();
+    break;
+  } catch {}
+}
+
+console.log("Connected to RabbitMQ");
 channel.assertQueue(queueName, { durable: true });
 
 channel.on("error", function (err) {
@@ -63,6 +79,7 @@ app.get(
   ) => {
     try {
       const cbu = await fromIdentifierToCBU(req.body, pool); // TODO: change to add all public information
+      console.log(cbu);
       if (!cbu) {
         res.status(404).json({ error: "User not found" });
         return;
@@ -132,12 +149,29 @@ app.post("/user", async (req: Request<{ cbu: string }>, res) => {
 
 app.post("/makeTransaction", async (req: Request<Transaction>, res) => {
   try {
-    const originCBU = (
-      await fromIdentifierToCBU(req.body.originIdentifier, pool)
-    ).cbu;
-    const destinationCBU = (
-      await fromIdentifierToCBU(req.body.destinationIdentifier, pool)
-    ).cbu;
+    const originCBU =
+      (await fromIdentifierToCBU(req.body.originIdentifier, pool)) ??
+      "Not Found";
+
+    const destinationCBU =
+      (await fromIdentifierToCBU(req.body.destinationIdentifier, pool)) ??
+      "Not Found";
+
+    if (originCBU === "Not Found") {
+      if (destinationCBU === "Not Found") {
+        res
+          .status(404)
+          .json({ error: "Origin and Destination users not found" });
+        return;
+      }
+      res.status(404).json({ error: "Origin user not found" });
+      return;
+    }
+    if (destinationCBU === "Not Found") {
+      res.status(404).json({ error: "Destination user not found" });
+      return;
+    }
+
     const userQueueName = originCBU + "-transactions";
     channel.assertQueue(userQueueName, { durable: true });
 

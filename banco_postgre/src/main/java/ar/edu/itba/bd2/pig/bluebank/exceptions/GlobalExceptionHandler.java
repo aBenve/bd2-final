@@ -2,6 +2,8 @@ package ar.edu.itba.bd2.pig.bluebank.exceptions;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -33,6 +35,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> illegalOperationHandler(IllegalOperationException exception, WebRequest request){
         var exceptionDetails = new ExceptionDetails(exception.getMessage(), request.getDescription(false), LocalDateTime.now());
         return new ResponseEntity<>(exceptionDetails, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> invalidRequestBodyHandler(MethodArgumentNotValidException exception, WebRequest request){
+        StringBuilder errorMsg = new StringBuilder("Invalid values in body:").append('\n');
+        for(FieldError error : exception.getFieldErrors()){
+            errorMsg.append("for field ").append(error.getField())
+                    .append(" = '").append(error.getRejectedValue())
+                    .append("': ")
+                    .append(error.getDefaultMessage()).append('\n');
+        }
+        var exceptionDetails = new ExceptionDetails(errorMsg.toString(), request.getDescription(false), LocalDateTime.now());
+        return new ResponseEntity<>(exceptionDetails, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)

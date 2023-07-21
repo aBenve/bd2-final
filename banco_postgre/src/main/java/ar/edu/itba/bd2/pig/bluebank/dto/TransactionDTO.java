@@ -1,16 +1,14 @@
-package ar.edu.itba.bd2.pig.bluebank.Dto;
+package ar.edu.itba.bd2.pig.bluebank.dto;
 
 import ar.edu.itba.bd2.pig.bluebank.model.Transaction;
 
-import java.math.BigDecimal;
-
-public class TransactionDto {
+public class TransactionDTO {
     private String transactionId;
     private String status;
     private String amount;
 
-    public static TransactionDto fromTransaction(Transaction transaction){
-        final TransactionDto transactionDto = new TransactionDto();
+    public static TransactionDTO fromTransaction(Transaction transaction){
+        final TransactionDTO transactionDto = new TransactionDTO();
 
         transactionDto.transactionId = transaction.getTransactionId().toString();
         transactionDto.status = transaction.isCompleted()? "completed" : "pending";
@@ -19,7 +17,7 @@ public class TransactionDto {
         return transactionDto;
     }
 
-    public TransactionDto() {
+    public TransactionDTO() {
         super();
     }
 

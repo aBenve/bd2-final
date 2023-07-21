@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS users (
    name VARCHAR(255) NOT NULL,
-   id INT PRIMARY KEY,
+   id SERIAL PRIMARY KEY,
    email VARCHAR(255) NOT NULL,
    phone_number CHAR(10) NOT NULL,
    balance DECIMAL(17, 2) DEFAULT 0 NOT NULL,
    cbu CHAR(22) NOT NULL,
    password_hash VARCHAR(255) NOT NULL,
    is_blocked BOOLEAN DEFAULT false NOT NULL,
-   secret_token UUID NOT NULL,
+   secret_token UUID DEFAULT gen_random_uuid() NOT NULL,
 
    CONSTRAINT cbu_unique UNIQUE (cbu),
    CONSTRAINT token_unique UNIQUE (secret_token)

@@ -1,16 +1,13 @@
-package ar.edu.itba.bd2.pig.bluebank.Dto;
+package ar.edu.itba.bd2.pig.bluebank.dto;
 
 import ar.edu.itba.bd2.pig.bluebank.model.User;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import org.springframework.format.annotation.NumberFormat;
 
-public class UserFundsDto {
+public class UserFundsDTO {
     private String funds;
     private int accountId;
 
-    public static UserFundsDto fromUser(User user){
-        final UserFundsDto userFundsDto = new UserFundsDto();
+    public static UserFundsDTO fromUser(User user){
+        final UserFundsDTO userFundsDto = new UserFundsDTO();
 
         userFundsDto.accountId = user.getId();
         userFundsDto.funds = user.getBalance().toString();
@@ -18,7 +15,7 @@ public class UserFundsDto {
         return userFundsDto;
     }
 
-    public UserFundsDto() {
+    public UserFundsDTO() {
         super();
     }
 

@@ -7,37 +7,45 @@ export function fromIdentifierToCBU(
   accountIdentifier: AccountWithOneIdentifier,
   pool: Pool<pg.Client>
 ) {
-  if (accountIdentifier.uuid)
-    return pool
-      .query("SELECT cbu FROM users WHERE uuid = $1", [accountIdentifier.uuid])
-      .then((res) => res.rows[0]);
-  if (accountIdentifier.name)
-    return pool
-      .query("SELECT cbu FROM users WHERE name = $1", [accountIdentifier.name])
-      .then((res) => res.rows[0]);
-  if (accountIdentifier.cbu)
-    return pool
-      .query("SELECT cbu FROM users WHERE cbu = $1", [accountIdentifier.cbu])
-      .then((res) => res.rows[0]);
-  if (accountIdentifier.phone)
-    return pool
-      .query("SELECT cbu FROM users WHERE phone = $1", [
-        accountIdentifier.phone,
-      ])
-      .then((res) => res.rows[0]);
-  if (accountIdentifier.email)
-    return pool
-      .query("SELECT cbu FROM users WHERE email = $1", [
-        accountIdentifier.email,
-      ])
-      .then((res) => res.rows[0]);
+  try {
+    if (accountIdentifier.uuid)
+      return pool
+        .query("SELECT cbu FROM users WHERE uuid = $1", [
+          accountIdentifier.uuid,
+        ])
+        .then((res) => res.rows[0]);
+    if (accountIdentifier.name)
+      return pool
+        .query("SELECT cbu FROM users WHERE name = $1", [
+          accountIdentifier.name,
+        ])
+        .then((res) => res.rows[0]);
+    if (accountIdentifier.cbu)
+      return pool
+        .query("SELECT cbu FROM users WHERE cbu = $1", [accountIdentifier.cbu])
+        .then((res) => res.rows[0]);
+    if (accountIdentifier.phone)
+      return pool
+        .query("SELECT cbu FROM users WHERE phone = $1", [
+          accountIdentifier.phone,
+        ])
+        .then((res) => res.rows[0]);
+    if (accountIdentifier.email)
+      return pool
+        .query("SELECT cbu FROM users WHERE email = $1", [
+          accountIdentifier.email,
+        ])
+        .then((res) => res.rows[0]);
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 export function createPostgreTable(pool: Pool<pg.Client>) {
   const query = `
     CREATE TABLE IF NOT EXISTS users (
         name VARCHAR(255) NOT NULL,
-        uuid UUID PRIMARY KEY PRIMARY KEY,
+        uuid UUID PRIMARY KEY,
         email VARCHAR(255) NOT NULL,
         phone CHAR(10) NOT NULL,
         cbu CHAR(22) NOT NULL,
@@ -68,30 +76,7 @@ export function addUserToDB(pool: Pool<pg.Client>) {
     ON CONFLICT DO NOTHING;
 
   `;
-  pool.query(query);
-}
-
-export async function connectToRabit(channel: amqp.Channel) {
-  while (true) {
-    try {
-      const amqpConnection = await amqp.connect("amqp://localhost:5672");
-      channel = await amqpConnection.createChannel();
-      break;
-    } catch {}
-  }
-}
-
-export async function connectToPostgre(pool: Pool<pg.Client>) {
-  while (true) {
-    try {
-      pool = new Pool({
-        user: "usuario",
-        password: "123",
-        host: "localhost",
-        port: 5431,
-        database: "pig_backend_users",
-      });
-      break;
-    } catch {}
-  }
+  pool.query(query).then((res) => {
+    console.log("Users added successfully");
+  });
 }
