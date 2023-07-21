@@ -19,6 +19,7 @@ export interface Transaction {
   originIdentifier: AccountWithOneIdentifier;
   destinationIdentifier: AccountWithOneIdentifier;
   amount: number;
+  date: Date;
 }
 
 export interface AccountIdentifiers {
@@ -29,9 +30,16 @@ export interface AccountIdentifiers {
   email?: string;
 }
 
-export type AccountWithOneIdentifier = Required<
-  Pick<AccountIdentifiers, "cbu" | "email" | "name" | "phone" | "uuid">
+export type AccountWithOneIdentifier = Pick<
+  AccountIdentifiers,
+  "cbu" | "email" | "name" | "phone" | "uuid"
 >;
+export interface QueueTransaction {
+  originCBU: string;
+  destinationCBU: string;
+  balance: number;
+  date: Date;
+}
 
 export interface AccountWithOneIdentifierRequest extends NextRequest {
   body: AccountWithOneIdentifier;
@@ -39,4 +47,8 @@ export interface AccountWithOneIdentifierRequest extends NextRequest {
 
 export interface AccountWithOneIdentifierAndTokenRequest extends NextRequest {
   body: AccountWithOneIdentifier & { secret_token: string };
+}
+
+export interface TransactionRequest extends NextRequest {
+  body: Transaction;
 }

@@ -9,6 +9,7 @@ class RabbitMQClient {
 
     try {
       this.connect();
+      this.init();
       console.log("RabbitMQService init success");
     } catch (err) {
       console.log("RabbitMQService init failed");
@@ -17,12 +18,19 @@ class RabbitMQClient {
     }
   }
 
+  public getChannel(): Channel {
+    return this.channel!;
+  }
+
   public getInstance(): RabbitMQClient {
     if (!RabbitMQClient.instance) {
       RabbitMQClient.instance = new RabbitMQClient();
     }
 
     return RabbitMQClient.instance;
+  }
+  public init() {
+    this.channel!.assertQueue("transactions", { durable: true });
   }
 
   public async connect() {
@@ -63,11 +71,11 @@ class RabbitMQClient {
 export default RabbitMQClient;
 
 const globalRabbit = globalThis as unknown as {
-  rabbitChannel: RabbitMQClient | undefined;
+  rabbitChannel: Channel | undefined;
 };
 
 export const rabbitChannel =
-  globalRabbit.rabbitChannel ?? new RabbitMQClient().getInstance();
+  globalRabbit.rabbitChannel ?? new RabbitMQClient().getChannel();
 
 if (process.env.NODE_ENV !== "production")
   globalRabbit.rabbitChannel = rabbitChannel;
