@@ -11,6 +11,8 @@ import ar.edu.itba.bd2.pig.bluebank.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+
+import org.hibernate.validator.constraints.UUID.LetterCase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -239,7 +241,7 @@ public class MainController {
     }
 
     @PostMapping("/endTransaction")
-    public void endTransaction(@Valid @RequestBody @org.hibernate.validator.constraints.UUID String transactionId){
+    public void endTransaction(@Valid @RequestBody @org.hibernate.validator.constraints.UUID(letterCase = LetterCase.INSENSITIVE) String transactionId){
         Collection<Transaction> transactions = transactionRepository.findDistinctByTransactionId(UUID.fromString(transactionId));
         if(transactions.size() == 0)
             throw new ResourceNotFoundException(String.format("There is no active transaction with id %s", transactionId));
