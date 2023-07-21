@@ -1,12 +1,15 @@
 import amqp, { Channel, Connection } from "amqplib";
 
-class RabbitMQService {
-  private static instance: RabbitMQService;
+class RabbitMQClient {
+  private static instance: RabbitMQClient;
   private channel: Channel | undefined;
 
-  private constructor() {
+  constructor() {
+    if (globalRabbit.rabbitChannel !== null) return;
+
     try {
       this.connect();
+      console.log("RabbitMQService init success");
     } catch (err) {
       console.log("RabbitMQService init failed");
       console.log(err);
@@ -14,12 +17,12 @@ class RabbitMQService {
     }
   }
 
-  public static getInstance(): RabbitMQService {
-    if (!RabbitMQService.instance) {
-      RabbitMQService.instance = new RabbitMQService();
+  public getInstance(): RabbitMQClient {
+    if (!RabbitMQClient.instance) {
+      RabbitMQClient.instance = new RabbitMQClient();
     }
 
-    return RabbitMQService.instance;
+    return RabbitMQClient.instance;
   }
 
   public async connect() {
@@ -57,6 +60,14 @@ class RabbitMQService {
   }
 }
 
-const rabbitMQService = RabbitMQService.getInstance();
+export default RabbitMQClient;
 
-export default rabbitMQService;
+const globalRabbit = globalThis as unknown as {
+  rabbitChannel: RabbitMQClient | undefined;
+};
+
+export const rabbitChannel =
+  globalRabbit.rabbitChannel ?? new RabbitMQClient().getInstance();
+
+if (process.env.NODE_ENV !== "production")
+  globalRabbit.rabbitChannel = rabbitChannel;
