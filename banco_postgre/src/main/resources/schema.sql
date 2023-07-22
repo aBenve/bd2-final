@@ -25,6 +25,14 @@ CREATE TABLE IF NOT EXISTS user_active_transactions(
 
 CREATE INDEX IF NOT EXISTS transaction_search ON user_active_transactions(transaction_id);
 
+CREATE TABLE IF NOT EXISTS transaction_history(
+  transaction_id UUID PRIMARY KEY,
+  origin_cbu CHAR(22) NOT NULL, -- the CBUs are not null but don't necessarily relate to an existing user from this bank
+  destination_cbu CHAR(22) NOT NULL,
+  amount DECIMAL(17,2) NOT NULL,
+  completion_date TIMESTAMP
+);
+
 -- CREATE TABLE IF NOT EXISTS user_active_transactions(
 --     origin_user INT REFERENCES users ON DELETE CASCADE,
 --     destination_user INT REFERENCES users ON DELETE CASCADE,
