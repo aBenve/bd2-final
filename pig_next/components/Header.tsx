@@ -1,19 +1,17 @@
-import Image from "next/image";
-import logo from "../public/pig.png";
+import axios from "axios";
+import { useQuery } from "react-query";
+import Balance from "./Balance";
 
 function Header() {
   return (
-    <nav className="flex justify-between items-center w-full px-4 py-2 bg-stone-800">
-      <div className="flex items-center">
-        <Image src={logo} alt="pig" className="w-10 h-10 mr-2 rounded-full" />
-        <h1 className="text-2xl font-bold text-white">PIG</h1>
+    <div className="flex w-full flex-col gap-8">
+      <div className="flex flex-col gap-4">
+        <span className="max-w-[90%] truncate text-stone-500 ">
+          Hi username
+        </span>
+        <Balance />
       </div>
-      <div className="flex items-center">
-        <button className="px-4 py-2 text-white bg-pink-500 rounded-md">
-          Sign in
-        </button>
-      </div>
-    </nav>
+    </div>
   );
 }
 
