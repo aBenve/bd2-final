@@ -14,7 +14,8 @@ export async function GET(req: AccountWithOneIdentifierRequest) {
     const cbu = await fromIdentifierToCBU(
       fromSearchParamsToAccountIdentifier(searchParams),
       client
-    ); // TODO: change to add all public information
+    );
+
     if (!cbu) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
