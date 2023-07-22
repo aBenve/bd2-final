@@ -1,8 +1,10 @@
 const express = require("express");
-const Model = require("../models/model");
+const Model = require("../models/users");
+const userController = require("../controllers/users");
+const authController = require("../controllers/auth");
+const transactionController = require("../controllers/transactions");
 
 const router = express.Router();
-module.exports = router;
 
 //Post Method
 router.post("/post", async (req, res) => {
@@ -48,73 +50,29 @@ router.delete("/delete/:id", (req, res) => {
   res.send("Delete by ID API");
 });
 
-//add Funds
-router.patch("/addFunds", async (req, res) => {
-  try {
-    const email = req.body.email;
-    const amount = req.body.amount;
+//createUser
+router.post("/createUser", userController.createUser);
 
-    const data = await Model.findOneAndUpdate(
-      { email: email },
-      { $inc: { balance: amount } }
-    );
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+//add Funds
+router.patch("/addFunds", userController.addFunds);
 
 //retire Funds
-router.patch("/retireFunds", async (req, res) => {
-  try {
-    const email = req.body.email;
-    const amount = req.body.amount;
-    const data = await Model.findOneAndUpdate(
-      { email: email },
-      { $inc: { balance: -amount } }
-    );
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+router.patch("/removeFunds", userController.removeFunds);
 
 //checkFunds
-router.get("/checkFunds", async (req, res) => {
-  try {
-    const email = req.params.email;
-    const requiredAmount = req.params.requiredAmount;
-    const data = await Model.findOne({ email: email });
-    res.status(200).json(data.balance == requiredAmount);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+router.get("/checkFunds", userController.checkFunds);
 
 //isUser
-router.get("/isUser", async (req, res) => {
-  try {
-    const email = req.params.email;
-    const data = await Model.findOne({ email: email });
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+router.get("/isUser", userController.isUser);
+
+//getUser
+router.get("/getUser", userController.getUser);
+
+//verifyUser
+router.post("/verifyUser", authController.verifyUser);
 
 //initiateTransaction
-router.patch("/initiateTransaction", async (req, res) => {
-  try {
-    const email = req.body.email;
-    const data = await Model.findOneAndUpdate(
-      { email: email },
-      { $set: { is_blocked: true } }
-    );
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+router.patch("/initiateTransaction", transactionController.initiateTransaction);
 
 //endTransaction
 router.patch("/endTransaction", async (req, res) => {
@@ -129,3 +87,5 @@ router.patch("/endTransaction", async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+module.exports = router;

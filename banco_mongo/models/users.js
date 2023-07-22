@@ -32,6 +32,10 @@ const dataSchema = new mongoose.Schema({
     required: true,
     type: Boolean,
   },
+  secret_token: {
+    required: true,
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("Data", dataSchema);
