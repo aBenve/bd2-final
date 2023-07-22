@@ -13,12 +13,13 @@ import java.util.UUID;
 @Entity(name="transaction_history")
 public class TransactionRecord {
     @Id
+    @Column(name = "transaction_id")
     UUID id;
-    @Column(name = "origin_cbu", nullable = false, insertable = false)
+    @Column(name = "origin_cbu", nullable = false)
     String originCBU;
-    @Column(name = "destination_cbu", nullable = false, insertable = false)
+    @Column(name = "destination_cbu", nullable = false)
     String destinationCBU;
-    @Column(name = "amount", nullable = false, insertable = false)
+    @Column(name = "amount", nullable = false)
     @Digits(integer = 17, fraction = 2)
     BigDecimal amount;
     @Column(name = "completion_date")

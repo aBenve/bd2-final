@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import org.hibernate.validator.constraints.UUID.LetterCase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -59,6 +60,7 @@ public class MainController {
     }
 
     @PostMapping("/users")
+    @Transactional
     public void createUser(@Valid @RequestBody UserForm userForm, HttpServletResponse httpServletResponse){
         User newUser = new User(userForm.getCbu(), userForm.getName(), userForm.getEmail(), userForm.getPhoneNumber(), passwordEncoder.encode(userForm.getPassword()));
         User createdUser = userRepository.save(newUser);
@@ -73,6 +75,7 @@ public class MainController {
     }
 
     @DeleteMapping("/users/{id}")
+    @Transactional
     public String deleteUser(@PathVariable("id") int id, HttpServletResponse httpServletResponse){
         List<User> removed = userRepository.removeById(id);
         if(removed.isEmpty()){
@@ -115,6 +118,7 @@ public class MainController {
      * @param authorizationRequest
      */
     @PostMapping("/authorizeUser")
+    @Transactional
     public PrivateUserWithTokenDto authorizeUser(@Valid @RequestBody UserAuthorizationRequest authorizationRequest){
         User user = userRepository.findByCbu(authorizationRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(authorizationRequest.getCbu()));
@@ -131,6 +135,7 @@ public class MainController {
      * @param authenticationRequest CBU and token
      */
     @PostMapping("/verifyUser")
+    @Transactional
     public void verifyUser(@Valid @RequestBody UserAuthenticationRequest authenticationRequest){
         authenticateUser(authenticationRequest);
     }
@@ -153,6 +158,7 @@ public class MainController {
     }
 
     @PatchMapping("/addFunds")
+    @Transactional
     public UserFundsDTO addFunds(@Valid @RequestBody FundsRequest fundsRequest){
         User user = userRepository.findByCbu(fundsRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
@@ -188,6 +194,7 @@ public class MainController {
     }
 
     @PostMapping("/initiateTransaction")
+    @Transactional
     public String initiateTransaction(@Valid @RequestBody TransactionRequest transactionRequest){
         Optional<User> originUser = userRepository.findByCbu(transactionRequest.getOriginCBU());
         Optional<User> destinationUser = userRepository.findByCbu(transactionRequest.getDestinationCBU());
@@ -250,11 +257,13 @@ public class MainController {
         record.setAmount(transactionAmount);
         record.setCompletionDate(null); // confirm later
         transactionHistoryRepository.save(record);
+        transactionHistoryRepository.flush();
 
         return transactionID.toString();
     }
 
     @PostMapping("/endTransaction")
+    @Transactional
     public void endTransaction(@Valid @RequestBody @org.hibernate.validator.constraints.UUID(letterCase = LetterCase.INSENSITIVE) String transactionId){
         Collection<Transaction> transactions = transactionRepository.findDistinctByTransactionId(UUID.fromString(transactionId));
         if(transactions.size() == 0)
