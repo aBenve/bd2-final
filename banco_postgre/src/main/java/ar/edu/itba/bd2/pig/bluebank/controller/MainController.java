@@ -176,6 +176,7 @@ public class MainController {
     }
 
     @PatchMapping("/removeFunds")
+    @Transactional
     public UserFundsDTO removeFunds(@Valid @RequestBody FundsRequest fundsRequest){
         User user = userRepository.findByCbu(fundsRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
