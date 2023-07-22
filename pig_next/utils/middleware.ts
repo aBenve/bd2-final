@@ -1,15 +1,13 @@
-import { GetMessage } from "amqplib";
-import { AccountIdentifiers, User } from "../types";
-import { rabbitChannel } from "../service/rabbitmq";
+import { User, NewUserInfo } from "../types";
 
-const POSTGRE_BANK_API = process.env.POSTGRE_BANK_API as string;
+const POSTGRE_BANK_API = process.env.POSTGRE_BANK_API;
 const MONGO_BANK_API = process.env.MONGO_BANK_API;
 
 const BANK_ENDPOINTS = {
   isUser: { endpoint: "/isUser", method: "GET" },
-  verifyUser: { endpoint: "/verifyUser", method: "GET" },
-  authenticateUser: { endpoint: "/authenticateUser", method: "POST" },
-  userPrivate: { endpoint: "/user", method: "GET" },
+  verifyUser: { endpoint: "/verifyUser", method: "POST" },
+  authenticateUser: { endpoint: "/authorizeUser", method: "POST" },
+  userPrivate: { endpoint: "/userPrivate", method: "GET" },
   userPublic: { endpoint: "/getUser", method: "GET" },
   initiateTransaction: { endpoint: "/initiateTransaction", method: "POST" },
   addFunds: { endpoint: "/addFunds", method: "POST" },
@@ -22,19 +20,61 @@ interface CBU_BANK_API_REFERENCE {
   "002": string;
 }
 
-const CBU_BANK_API_REFERENCE: CBU_BANK_API_REFERENCE = {
+const CBU_BANK_API_REFERENCE = {
   "000": POSTGRE_BANK_API,
-  "002": MONGO_BANK_API!,
+  "002": MONGO_BANK_API,
 };
+
 function getEndpoint(cbu: string, endpoint: string) {
   return (
-    String(
-      CBU_BANK_API_REFERENCE[
-        cbu.substring(0, 3) as keyof CBU_BANK_API_REFERENCE
-      ]
-    ) + endpoint
+    CBU_BANK_API_REFERENCE[
+      cbu.substring(0, 3) as keyof CBU_BANK_API_REFERENCE
+    ] + endpoint
   );
 }
+
+function addParamsToBody(
+  options: RequestInit,
+  params: {
+    cbu?: string;
+    password?: string;
+    originCBU?: string;
+    destinationCBU?: string;
+    amount?: string;
+    originSecretToken?: string;
+    destinationSecretToken?: string;
+    transactionId?: string;
+  }
+) {
+  return { ...options, body: JSON.stringify(params) };
+}
+
+function addParamsToRequest(
+  endpoint: string,
+  params: { name: string; value: any }[]
+) {
+  return (
+    endpoint +
+    "?" +
+    params.map((param) => (param.name + "=" + param.value) as string).join("&")
+  );
+}
+
+export async function checkIfUserExists(cbu: string): Promise<Boolean> {
+  const options: RequestInit = {
+    method: BANK_ENDPOINTS.isUser.method,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+
+  const res = await fetch(
+    getEndpoint(cbu, BANK_ENDPOINTS.isUser.endpoint) + `?cbu=${cbu}`,
+    options
+  );
+  return res.ok;
+}
+
 export async function checkIfUserIsValid(
   cbu: string,
   token: string
@@ -44,60 +84,44 @@ export async function checkIfUserIsValid(
     headers: {
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      cbu,
+      secretToken: token,
+    }),
   };
   const res = await fetch(
-    getEndpoint(cbu, BANK_ENDPOINTS.verifyUser.endpoint) +
-      `?cbu=${cbu}` +
-      `&secretToken=${token}`,
+    getEndpoint(cbu, BANK_ENDPOINTS.verifyUser.endpoint),
     options
   );
   return res.ok;
 }
 
-export async function getPrivateInfo(
+export async function authenticateUser(
   cbu: string,
-  token: string
-): Promise<User> {
-  const options = {
-    method: BANK_ENDPOINTS.userPrivate.method,
+  password: string
+): Promise<NewUserInfo | undefined> {
+  let options = {
+    method: BANK_ENDPOINTS.authenticateUser.method,
+    headers: {
+      "Content-Type": "application/json",
+    },
   };
-  const res = await fetch(
-    getEndpoint(cbu, BANK_ENDPOINTS.userPrivate.endpoint) +
-      `?cbu=${cbu}` +
-      `&secretToken=${token}`,
-    options
-  );
-  return (await res.json()) as User;
-}
-
-export async function getBodyFromRequest(req: any) {
-  const redeableStream = req.body;
-  const chunks = [];
-  for await (const chunk of redeableStream) {
-    chunks.push(chunk);
+  options =
+    BANK_ENDPOINTS.authenticateUser.method == "GET"
+      ? options
+      : addParamsToBody(options, { cbu, password });
+  const endpoint =
+    BANK_ENDPOINTS.authenticateUser.method == "GET"
+      ? addParamsToRequest(BANK_ENDPOINTS.authenticateUser.endpoint, [
+          { name: "cbu", value: cbu },
+          { name: "password", value: password },
+        ])
+      : BANK_ENDPOINTS.authenticateUser.endpoint;
+  const res = await fetch(getEndpoint(cbu, endpoint), options);
+  if (!res.ok) {
+    return undefined;
   }
-  return JSON.parse(Buffer.concat(chunks).toString());
-}
-
-export function fromSearchParamsToAccountIdentifier(
-  searchParams: URLSearchParams
-): Pick<AccountIdentifiers, "cbu" | "email" | "name" | "phone" | "uuid"> {
-  if (searchParams.has("uuid")) {
-    return { uuid: searchParams.get("uuid")! };
-  }
-  if (searchParams.has("cbu")) {
-    return { cbu: searchParams.get("cbu")! };
-  }
-  if (searchParams.has("phone")) {
-    return { phone: searchParams.get("phone")! };
-  }
-  if (searchParams.has("email")) {
-    return { email: searchParams.get("email")! };
-  }
-  if (searchParams.has("name")) {
-    return { name: searchParams.get("name")! };
-  }
-  throw new Error("Missing identifier");
+  return res.json();
 }
 
 export async function iniciateTransaction(
@@ -118,21 +142,40 @@ export async function iniciateTransaction(
         "Content-Type": "application/json",
       },
     };
-
-    // Initiate Transaction with bank
-    let res = await fetch(
-      getEndpoint(originCBU, BANK_ENDPOINTS.initiateTransaction.endpoint) +
-        `?originCbu=${originCBU}` +
-        `&destinationCbu=${destinationCBU}` +
-        `&amount=${amount}` +
-        `&originSecretToken=${originSecretToken}` +
-        `&destinationSecretToken=${destinationSecretToken}`,
-      options
+    let endpoint = getEndpoint(
+      originCBU,
+      BANK_ENDPOINTS.initiateTransaction.endpoint
     );
 
-    if (!res.ok) return false;
+    if (BANK_ENDPOINTS.initiateTransaction.method != "GET") {
+      options = addParamsToBody(options, {
+        originCBU,
+        destinationCBU,
+        amount,
+        originSecretToken,
+        destinationSecretToken,
+      });
+    } else {
+      endpoint = addParamsToRequest(endpoint, [
+        { name: "originCBU", value: originCBU },
+        { name: "destinationCBU", value: destinationCBU },
+        { name: "amount", value: amount },
+        { name: "originSecretToken", value: originSecretToken },
+        { name: "destinationSecretToken", value: destinationSecretToken },
+      ]);
+    }
+
+    // Initiate Transaction with bank
+    let res = await fetch(endpoint, options);
+
+    if (!res.ok) {
+      console.log("No init");
+      return false;
+    }
 
     const transactionId = await res.text();
+
+    console.log("Transaction Id: ", transactionId);
 
     // Add and remove funds
 
@@ -172,14 +215,28 @@ export async function iniciateTransaction(
       },
     };
 
-    let res = await fetch(
-      getEndpoint(originCBU, BANK_ENDPOINTS.initiateTransaction.endpoint) +
-        `?originCbu=${originCBU}` +
-        `&destinationCbu=${destinationCBU}` +
-        `&amount=${amount}` +
-        `&originSecretToken=${originSecretToken}`,
-      options
+    let initTransactionEndpoint = getEndpoint(
+      originCBU,
+      BANK_ENDPOINTS.initiateTransaction.endpoint
     );
+
+    if (BANK_ENDPOINTS.initiateTransaction.method != "GET") {
+      options = addParamsToBody(options, {
+        originCBU,
+        destinationCBU,
+        amount,
+        originSecretToken,
+      });
+    } else {
+      initTransactionEndpoint = addParamsToRequest(initTransactionEndpoint, [
+        { name: "originCBU", value: originCBU },
+        { name: "destinationCBU", value: destinationCBU },
+        { name: "amount", value: amount },
+        { name: "originSecretToken", value: originSecretToken },
+      ]);
+    }
+
+    let res = await fetch(initTransactionEndpoint, options);
 
     if (!res.ok) {
       return false;
@@ -187,14 +244,33 @@ export async function iniciateTransaction(
 
     transactionIds.origin = (await res.json()).transactionId;
 
-    res = await fetch(
-      getEndpoint(destinationCBU, BANK_ENDPOINTS.initiateTransaction.endpoint) +
-        `?originCbu=${originCBU}` +
-        `&destinationCbu=${destinationCBU}` +
-        `&amount=${amount}` +
-        `&destinationSecretToken=${destinationSecretToken}`,
-      options
+    options = {
+      method: BANK_ENDPOINTS.initiateTransaction.method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    initTransactionEndpoint = getEndpoint(
+      originCBU,
+      BANK_ENDPOINTS.initiateTransaction.endpoint
     );
+    if (BANK_ENDPOINTS.initiateTransaction.method != "GET") {
+      options = addParamsToBody(options, {
+        originCBU,
+        destinationCBU,
+        amount,
+        destinationSecretToken,
+      });
+    } else {
+      initTransactionEndpoint = addParamsToRequest(initTransactionEndpoint, [
+        { name: "originCBU", value: originCBU },
+        { name: "destinationCBU", value: destinationCBU },
+        { name: "amount", value: amount },
+        { name: "destinationSecretToken", value: destinationSecretToken },
+      ]);
+    }
+
+    res = await fetch(initTransactionEndpoint, options);
 
     if (!res.ok) {
       return false;
@@ -246,20 +322,29 @@ async function addFunds(
   amount: string,
   transactionId: string
 ): Promise<Boolean> {
-  const options = {
+  let options = {
     method: BANK_ENDPOINTS.addFunds.method,
     headers: {
       "Content-Type": "application/json",
     },
   };
+  let endpoint = getEndpoint(cbu, BANK_ENDPOINTS.addFunds.endpoint);
 
-  const res = await fetch(
-    getEndpoint(cbu, BANK_ENDPOINTS.addFunds.endpoint) +
-      `?cbu=${cbu}` +
-      `&amount=${amount}` +
-      `&transactionId=${transactionId}`,
-    options
-  );
+  if (BANK_ENDPOINTS.removeFunds.method != "GET") {
+    options = addParamsToBody(options, {
+      cbu,
+      amount,
+      transactionId,
+    });
+  } else {
+    endpoint = addParamsToRequest(endpoint, [
+      { name: "cbu", value: cbu },
+      { name: "amount", value: amount },
+      { name: "transactionId", value: transactionId },
+    ]);
+  }
+
+  const res = await fetch(endpoint, options);
   return res.ok;
 }
 
@@ -269,18 +354,30 @@ async function removeFunds(
   amount: string,
   transactionId: string
 ): Promise<Boolean> {
-  const options = {
+  let options = {
     method: BANK_ENDPOINTS.removeFunds.method,
     headers: {
       "Content-Type": "application/json",
     },
   };
+  let endpoint = getEndpoint(cbu, BANK_ENDPOINTS.removeFunds.endpoint);
+
+  if (BANK_ENDPOINTS.removeFunds.method != "GET") {
+    options = addParamsToBody(options, {
+      cbu,
+      amount,
+      transactionId,
+    });
+  } else {
+    endpoint = addParamsToRequest(endpoint, [
+      { name: "cbu", value: cbu },
+      { name: "amount", value: amount },
+      { name: "transactionId", value: transactionId },
+    ]);
+  }
 
   const res = await fetch(
-    getEndpoint(cbu, BANK_ENDPOINTS.removeFunds.endpoint) +
-      `?cbu=${cbu}` +
-      `&amount=${amount}` +
-      `&transactionId=${transactionId}`,
+    getEndpoint(cbu, BANK_ENDPOINTS.removeFunds.endpoint),
     options
   );
   return res.ok;
@@ -291,30 +388,37 @@ async function endTransaction(
   cbu: string,
   transactionId: string
 ): Promise<Boolean> {
-  const options = {
+  let options = {
     method: BANK_ENDPOINTS.endTransaction.method,
+    body: transactionId,
   };
+  let endpoint = getEndpoint(cbu, BANK_ENDPOINTS.endTransaction.endpoint);
 
-  const res = await fetch(
-    getEndpoint(cbu, BANK_ENDPOINTS.endTransaction.endpoint) +
-      `?ctransactionIdbu=${cbu}`,
-    options
-  );
+  const res = await fetch(endpoint, options);
   return res.ok;
 }
 
-export async function forEachMessage(
-  queueName: string,
-  consumer: (msg: GetMessage) => void
-) {
-  rabbitChannel.assertQueue(queueName, { durable: true });
-  while (true) {
-    const message = await rabbitChannel.get(queueName, { noAck: false });
-    if (!message) {
-      break;
-    }
-    consumer(message);
+export async function getPrivateInfo(
+  cbu: string,
+  token: string
+): Promise<User> {
+  const options = {
+    method: BANK_ENDPOINTS.userPrivate.method,
+  };
+  const res = await fetch(
+    getEndpoint(cbu, BANK_ENDPOINTS.userPrivate.endpoint) +
+      `?cbu=${cbu}` +
+      `&secretToken=${token}`,
+    options
+  );
+  return (await res.json()) as User;
+}
+
+export async function getBodyFromRequest(req: any) {
+  const redeableStream = req.body;
+  const chunks = [];
+  for await (const chunk of redeableStream) {
+    chunks.push(chunk);
   }
-  rabbitChannel.nackAll(true);
-  return;
+  return JSON.parse(Buffer.concat(chunks).toString());
 }

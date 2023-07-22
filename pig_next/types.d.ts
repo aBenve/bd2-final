@@ -1,15 +1,21 @@
 import { NextRequest } from "next/server";
 
 export interface User {
-  name: string;
-  uuid: string;
-  email: string;
-  phone: string;
+  name?: string;
+  email?: string;
+  phone?: string;
   cbu: string;
   secret_token: string;
-  alias: string;
-  creation_date: Date;
+  alias?: string;
+  creation_date?: Date;
 }
+
+export type NewUserInfo = {
+  secretToken: string;
+  phoneNumber: string;
+  email: string;
+  name: string;
+};
 
 export interface UserPublic {
   name: string;
