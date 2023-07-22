@@ -4,11 +4,12 @@ import ar.edu.itba.bd2.pig.bluebank.dto.*;
 import ar.edu.itba.bd2.pig.bluebank.exceptions.*;
 import ar.edu.itba.bd2.pig.bluebank.form.UserForm;
 import ar.edu.itba.bd2.pig.bluebank.model.Transaction;
+import ar.edu.itba.bd2.pig.bluebank.model.TransactionRecord;
 import ar.edu.itba.bd2.pig.bluebank.model.TransactionRole;
 import ar.edu.itba.bd2.pig.bluebank.model.User;
+import ar.edu.itba.bd2.pig.bluebank.repository.TransactionHistoryRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.TransactionRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
@@ -22,6 +23,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -40,13 +42,15 @@ public class MainController {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TransactionHistoryRepository transactionHistoryRepository;
 
 
     @Autowired
-    public MainController(UserRepository userRepository, TransactionRepository transactionRepository, PasswordEncoder passwordEncoder){
+    public MainController(UserRepository userRepository, TransactionRepository transactionRepository, PasswordEncoder passwordEncoder, TransactionHistoryRepository transactionHistoryRepository){
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.transactionRepository = transactionRepository;
+        this.transactionHistoryRepository = transactionHistoryRepository;
     }
 
     @GetMapping("/users")
@@ -143,12 +147,12 @@ public class MainController {
     }
 
     @GetMapping("/checkFunds")
-    public UserFundsDTO checkFunds(@Valid UserAuthenticationRequest authenticationRequest){
+    public String checkFunds(@Valid UserAuthenticationRequest authenticationRequest){
         User user = authenticateUser(authenticationRequest);
-        return UserFundsDTO.fromUser(user);
+        return user.getBalance().toString();
     }
 
-    @PostMapping("/addFunds")
+    @PatchMapping("/addFunds")
     public UserFundsDTO addFunds(@Valid @RequestBody FundsRequest fundsRequest){
         User user = userRepository.findByCbu(fundsRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
@@ -165,7 +169,7 @@ public class MainController {
         return UserFundsDTO.fromUser(user);
     }
 
-    @PostMapping("/removeFunds")
+    @PatchMapping("/removeFunds")
     public UserFundsDTO removeFunds(@Valid @RequestBody FundsRequest fundsRequest){
         User user = userRepository.findByCbu(fundsRequest.getCbu())
                 .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
@@ -221,6 +225,7 @@ public class MainController {
         }
 
         final UUID transactionID = UUID.randomUUID();
+        final BigDecimal transactionAmount = parseBigDecimal(transactionRequest.getAmount());
 
         final BiConsumer<User, TransactionRole> lockAccountAndRegisterTransaction = (user, role) -> {
             user.lock();
@@ -228,7 +233,7 @@ public class MainController {
 
             final Transaction originTransaction = new Transaction();
             originTransaction.setUserId(user.getId());
-            originTransaction.setAmount(parseBigDecimal(transactionRequest.getAmount()));
+            originTransaction.setAmount(transactionAmount);
             originTransaction.setRole(role);
             originTransaction.setTransactionId(transactionID);
             transactionRepository.save(originTransaction);
@@ -236,6 +241,15 @@ public class MainController {
 
         originUser.ifPresent(user -> lockAccountAndRegisterTransaction.accept(user, TransactionRole.ORIGIN));
         destinationUser.ifPresent(user -> lockAccountAndRegisterTransaction.accept(user, TransactionRole.DESTINATION));
+
+        // Register transaction to confirm later
+        TransactionRecord record = new TransactionRecord();
+        record.setId(transactionID);
+        record.setOriginCBU(transactionRequest.getOriginCBU());
+        record.setDestinationCBU(transactionRequest.getDestinationCBU());
+        record.setAmount(transactionAmount);
+        record.setCompletionDate(null); // confirm later
+        transactionHistoryRepository.save(record);
 
         return transactionID.toString();
     }
@@ -246,6 +260,7 @@ public class MainController {
         if(transactions.size() == 0)
             throw new ResourceNotFoundException(String.format("There is no active transaction with id %s", transactionId));
 
+        TransactionRecord record = transactionHistoryRepository.findById(UUID.fromString(transactionId)).orElseThrow(() -> new ResourceNotFoundException("No record of transaction found."));
         Optional<Transaction> originTransaction = transactions.stream().filter(t -> t.getRole().equals(TransactionRole.ORIGIN)).findFirst();
         Optional<Transaction> destinationTransaction = transactions.stream().filter(t -> t.getRole().equals(TransactionRole.DESTINATION)).findFirst();
 
@@ -260,6 +275,8 @@ public class MainController {
 
         originTransaction.ifPresent(removeTransactionAndUnlockUser);
         destinationTransaction.ifPresent(removeTransactionAndUnlockUser);
+        record.setCompletionDate(LocalDateTime.now());
+        transactionHistoryRepository.save(record);
     }
 
     private static BigDecimal parseBigDecimal(String number){
