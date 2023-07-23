@@ -17,7 +17,9 @@ interface useUserAuthStore {
 }
 
 export const useUserAuth = create<useUserAuthStore>((set) => ({
-  user: (localStorage.getItem("user") as unknown as User) ?? null,
+  user: localStorage.getItem("user")
+    ? (JSON.parse(localStorage.getItem("user")!) as unknown as User)
+    : null,
   login: async ({
     cbu,
     password,
