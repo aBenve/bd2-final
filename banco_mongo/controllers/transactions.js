@@ -5,7 +5,7 @@ const Model = require("../models/users");
 module.exports.initiateTransaction = async (req, res) => {
   try {
     const cbu = req.body.cbu;
-    const status = Model.findOne({ cbu: cbu }).is_blocked;
+    const status = await Model.findOne({ cbu: cbu }).is_blocked;
 
     if (!status) {
       const data = await Model.findOneAndUpdate(
@@ -25,7 +25,7 @@ module.exports.initiateTransaction = async (req, res) => {
 module.exports.endTransaction = async (req, res) => {
   try {
     const cbu = req.body.cbu;
-    const status = Model.findOne({ cbu: cbu }).is_blocked;
+    const status = await Model.findOne({ cbu: cbu }).is_blocked;
     if (status) {
       const data = await Model.findOneAndUpdate(
         { cbu: cbu },
