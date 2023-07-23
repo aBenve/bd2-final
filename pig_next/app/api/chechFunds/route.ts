@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
-import { client } from "../../../service/postgre";
 import {
   fromSearchParamsToAccountIdentifier,
   getUserBalance,

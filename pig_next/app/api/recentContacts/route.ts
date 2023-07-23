@@ -32,7 +32,7 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
       ...fromSearchParamsToAccountIdentifier(searchParams),
     };
 
-    const cbu = await fromIdentifierToCBU(identifierWithType, client);
+    const cbu = await fromIdentifierToCBU(identifierWithType);
     const token = body.secret_token;
 
     if (!(await checkIfUserIsValid(cbu, token))) {
@@ -47,13 +47,10 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
     await forEachMessage(userQueueName, (message) => {
       const transaction: Transaction = JSON.parse(message.content.toString());
 
-      const originCBU = fromIdentifierToCBU(
-        {
-          type: transaction.originIdentifierType,
-          [transaction.originIdentifierType]: transaction.originIdentifier,
-        },
-        client
-      );
+      const originCBU = fromIdentifierToCBU({
+        type: transaction.originIdentifierType,
+        [transaction.originIdentifierType]: transaction.originIdentifier,
+      });
 
       if (originCBU === cbu) {
         toRes.contacts.add({
@@ -89,10 +86,7 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
           ],
       };
 
-      const user = fromIdentifierToUserPublic(
-        contactCBUIdentifierWithType,
-        client
-      );
+      const user = fromIdentifierToUserPublic(contactCBUIdentifierWithType);
       if (user) {
         response.contacts.push(await user);
       }

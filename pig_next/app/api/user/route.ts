@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { AccountWithOneIdentifierRequest } from "../../../types";
 import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
-import { client } from "../../../service/postgre";
-import { fromSearchParamsToAccountIdentifier } from "../../../utils/middleware";
 
 export async function GET(req: AccountWithOneIdentifierRequest) {
   const searchParams = new URL(req.nextUrl).searchParams;
@@ -19,7 +17,7 @@ export async function GET(req: AccountWithOneIdentifierRequest) {
       [searchParams.get("type")!]: searchParams.get("identifier")!,
     };
 
-    const cbu = await fromIdentifierToCBU(identifierWithType, client);
+    const cbu = await fromIdentifierToCBU(identifierWithType);
 
     if (!cbu) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

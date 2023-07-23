@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { client } from "../../service/postgre";
+//import { client } from "../../service/postgre";
 
 export async function GET() {
-  if (!client) {
-    return NextResponse.json({ error: "PostgreClient not initialized" });
-  }
+  // if (!client) {
+  //   return NextResponse.json({ error: "PostgreClient not initialized" });
+  // }
   return NextResponse.json({
     routes: {
       "/checkFunds": {
