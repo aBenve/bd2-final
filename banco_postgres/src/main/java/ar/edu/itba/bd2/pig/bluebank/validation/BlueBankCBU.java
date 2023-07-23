@@ -10,8 +10,8 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = CBUValidator.class)
-public @interface CBU {
+@Constraint(validatedBy = BlueBankCBUValidator.class)
+public @interface BlueBankCBU {
     String message() default "Invalid CBU";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
