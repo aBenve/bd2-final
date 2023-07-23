@@ -1,13 +1,12 @@
 package ar.edu.itba.bd2.pig.bluebank.dto;
 
+import ar.edu.itba.bd2.pig.bluebank.validation.CBU;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class UserAuthorizationRequest {
-    @Size(min = 22, max = 22)
-    @NotNull
+    @CBU
     private String cbu;
-
     @NotNull
     private String password;
 
