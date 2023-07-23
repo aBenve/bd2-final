@@ -10,6 +10,7 @@ import ar.edu.itba.bd2.pig.bluebank.model.User;
 import ar.edu.itba.bd2.pig.bluebank.repository.TransactionHistoryRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.TransactionRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.UserRepository;
+import ar.edu.itba.bd2.pig.bluebank.validation.CBU;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
@@ -96,20 +97,12 @@ public class MainController {
         return TransactionDTO.fromTransaction(transaction);
     }
 
-    // TODO: add endpoints for user management
-
     @GetMapping("/getUser")
-    public UserDTO getUser(@Valid UserAccountRequest accountRequest){
+    public UserDTO getUser(@Valid @CBU String userCBU){
         return UserDTO.fromUser(
-                userRepository.findByCbu(accountRequest.getCbu())
-                .orElseThrow(userNotFoundExceptionSupplier.apply(accountRequest.getCbu()))
+                userRepository.findByCbu(userCBU)
+                .orElseThrow(userNotFoundExceptionSupplier.apply(userCBU))
         );
-    }
-
-    @GetMapping("/isUser")
-    public void isUser(@Valid UserAccountRequest accountRequest){
-        userRepository.findByCbu(accountRequest.getCbu())
-                .orElseThrow(() -> new ResourceNotFoundException(String.format("%s is not a user of Blue Bank", accountRequest.getCbu())));
     }
 
     /**
@@ -121,7 +114,7 @@ public class MainController {
     @Transactional
     public PrivateUserWithTokenDto authorizeUser(@Valid @RequestBody UserAuthorizationRequest authorizationRequest){
         User user = userRepository.findByCbu(authorizationRequest.getCbu())
-                .orElseThrow(userNotFoundExceptionSupplier.apply(authorizationRequest.getCbu()));
+                .orElseThrow(SecureUserNotFoundException::new);
 
         if(!passwordEncoder.matches(authorizationRequest.getPassword(), user.getPasswordHash()))
             throw new BadAuthorizationCredentialsException();
@@ -160,8 +153,7 @@ public class MainController {
     @PatchMapping("/addFunds")
     @Transactional
     public UserFundsDTO addFunds(@Valid @RequestBody FundsRequest fundsRequest){
-        User user = userRepository.findByCbu(fundsRequest.getCbu())
-                .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
+        User user = authenticateUser(fundsRequest);
         Transaction transaction = Optional.ofNullable(user.getActiveTransaction())
                 .orElseThrow(noActiveTransactionForUserSupplier.apply(fundsRequest.getCbu()));
 
@@ -178,9 +170,7 @@ public class MainController {
     @PatchMapping("/removeFunds")
     @Transactional
     public UserFundsDTO removeFunds(@Valid @RequestBody FundsRequest fundsRequest){
-        User user = userRepository.findByCbu(fundsRequest.getCbu())
-                .orElseThrow(userNotFoundExceptionSupplier.apply(fundsRequest.getCbu()));
-
+        User user = authenticateUser(fundsRequest);
         Transaction transaction = Optional.of(user.getActiveTransaction())
                 .orElseThrow(noActiveTransactionForUserSupplier.apply(fundsRequest.getCbu()));
 
@@ -296,7 +286,7 @@ public class MainController {
     private User authenticateUser(UserAuthenticationRequest authenticationRequest){
         Optional<User> user = userRepository.findByCbu(authenticationRequest.getCbu());
         if(user.isEmpty())
-            throw userNotFoundExceptionSupplier.apply(authenticationRequest.getCbu()).get();
+            throw new SecureUserNotFoundException();
         if(!user.get().getToken().toString().equals(authenticationRequest.getSecretToken()))
             throw new BadAuthenticationCredentialsException();
         return user.get();

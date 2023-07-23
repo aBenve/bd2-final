@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(BadAuthenticationCredentialsException.class)
+    @ExceptionHandler({BadAuthenticationCredentialsException.class, SecureUserNotFoundException.class})
     public ResponseEntity<?> badAuthenticationHandler(Exception exception, WebRequest request){
         var exceptionDetails = new ExceptionDetails(exception.getMessage(), request.getDescription(false), LocalDateTime.now());
         return new ResponseEntity<>(exceptionDetails, HttpStatus.BAD_REQUEST);
