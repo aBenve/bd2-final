@@ -4,7 +4,7 @@ class PostgreClient {
   private client: Client | null = null;
 
   constructor() {
-    if (globalPostgre.client !== null) return;
+    if (globalPostgre.client) return;
 
     try {
       this.client = new Client({
@@ -14,9 +14,13 @@ class PostgreClient {
         password: process.env.POSTGRES_PASSWORD,
         database: process.env.POSTGRES_DATABASE,
       });
-      this.connect();
+
+      this.client.connect(
+        (err) => err && console.log("PostgreClient connect failed")
+      );
+
       this.init();
-      this.addUser();
+
       console.log("PostgreClient init success");
     } catch (err) {
       console.log("PostgreClient init failed");
@@ -28,17 +32,13 @@ class PostgreClient {
     return this.client!;
   }
 
-  private async connect() {
-    try {
-      await this.client?.connect();
-    } catch (err) {
-      console.log("PostgreClient connect failed");
-      console.log(err);
-    }
+  public init() {
+    this.initTable();
+    this.addUser();
   }
 
-  private async addUser() {
-    await this.client
+  private addUser() {
+    this.client
       ?.query(
         `
       INSERT INTO users (name, uuid, email, phone, cbu, secret_token, alias, creation_date)
@@ -57,13 +57,13 @@ class PostgreClient {
       });
   }
 
-  private async init() {
+  private initTable() {
     this.client
       ?.query(
         `
     CREATE TABLE IF NOT EXISTS users (
         name VARCHAR(255) NOT NULL,
-        uuid UUID PRIMARY KEY PRIMARY KEY,
+        uuid UUID PRIMARY KEY,
         email VARCHAR(255) NOT NULL,
         phone CHAR(10) NOT NULL,
         cbu CHAR(22) NOT NULL,
@@ -80,7 +80,7 @@ class PostgreClient {
       .catch((err) => {
         console.log("Error creating table");
         console.error(err);
-        this.client?.end();
+        // this.client?.end();
       });
   }
 }
@@ -88,6 +88,11 @@ const globalPostgre = globalThis as unknown as {
   client: Client | undefined;
 };
 
-export const client = globalPostgre.client ?? new PostgreClient().getClient();
+const preparedClient = new PostgreClient();
 
-if (process.env.NODE_ENV !== "production") globalPostgre.client = client;
+const client = globalPostgre.client ?? preparedClient.getClient();
+//console.log("client", client);
+
+export default client;
+
+globalPostgre.client = client;

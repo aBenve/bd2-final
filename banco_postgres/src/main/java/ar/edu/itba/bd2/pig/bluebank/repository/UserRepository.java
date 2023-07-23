@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User,Integer> {
-    List<User> removeById(@NonNull int id);
+    List<User> removeById(int id);
     @Query("select (count(u) > 0) from User u where u.phoneNumber = ?1")
     boolean existsByPhoneNumber(@NonNull String phoneNumber);
     @Query("select (count(u) > 0) from User u where u.email = ?1")

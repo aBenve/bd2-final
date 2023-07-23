@@ -25,20 +25,14 @@ export async function POST(req: NextRequest) {
     if (!originIdentifier || !destinationIdentifier || !balance) {
       return NextResponse.json({ error: "Missing body" }, { status: 400 });
     }
-    const originCBU = await fromIdentifierToCBU(
-      {
-        type: originIdentifierType,
-        [originIdentifierType]: originIdentifier,
-      },
-      client
-    );
-    const destinationCBU = await fromIdentifierToCBU(
-      {
-        type: destinationIdentifierType,
-        [destinationIdentifierType]: destinationIdentifier,
-      },
-      client
-    );
+    const originCBU = await fromIdentifierToCBU({
+      type: originIdentifierType,
+      [originIdentifierType]: originIdentifier,
+    });
+    const destinationCBU = await fromIdentifierToCBU({
+      type: destinationIdentifierType,
+      [destinationIdentifierType]: destinationIdentifier,
+    });
     if (!originCBU || !destinationCBU) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }

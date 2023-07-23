@@ -97,7 +97,7 @@ export async function getUserBalance({
       `&secretToken=${secret_token}`,
     options
   );
-  return (await res.json()).balance;
+  return await res.json();
 }
 
 export async function checkIfUserExists(cbu: string): Promise<Boolean> {
@@ -146,19 +146,14 @@ export async function authenticateUser(
       "Content-Type": "application/json",
     },
   };
-  options =
-    BANK_ENDPOINTS.authenticateUser.method == "GET"
-      ? options
-      : addParamsToBody(options, { cbu, password });
-  const endpoint =
-    BANK_ENDPOINTS.authenticateUser.method == "GET"
-      ? addParamsToRequest(BANK_ENDPOINTS.authenticateUser.endpoint, [
-          { name: "cbu", value: cbu },
-          { name: "password", value: password },
-        ])
-      : BANK_ENDPOINTS.authenticateUser.endpoint;
-  const res = await fetch(getEndpoint(cbu, endpoint), options);
-  if (!res.ok) {
+  options = addParamsToBody(options, { cbu, password });
+
+  const res = await fetch(
+    getEndpoint(cbu, BANK_ENDPOINTS.authenticateUser.endpoint),
+    options
+  );
+
+  if (res.status === 400) {
     return undefined;
   }
   return res.json();

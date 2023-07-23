@@ -9,11 +9,6 @@ export default function Login() {
   const { login } = useUserAuth();
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log("submit", e.currentTarget);
-  };
-
   return (
     <main className="mx-auto flex h-[100vh] w-full flex-col items-center justify-center gap-8 overflow-hidden bg-stone-950 px-4 py-14 sm:w-[640px]">
       <div className="flex w-full flex-col items-center gap-4">
@@ -25,9 +20,14 @@ export default function Login() {
       <Formik
         initialValues={{ cbu: "", password: "", alias: "" }}
         onSubmit={async (values) => {
-          console.log(values);
-          if (await login(values)) router.push("/");
-          else alert("Wrong credentials");
+          try {
+            if (await login(values)) router.push("/");
+            else {
+              alert("Wrong credentials");
+            }
+          } catch (e) {
+            alert("There was a problem with the server");
+          }
         }}
       >
         <Form className="flex w-[20rem] flex-col">

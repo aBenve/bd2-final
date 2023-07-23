@@ -17,7 +17,9 @@ interface useUserAuthStore {
 }
 
 export const useUserAuth = create<useUserAuthStore>((set) => ({
-  user: null,
+  user: localStorage.getItem("user")
+    ? (JSON.parse(localStorage.getItem("user")!) as unknown as User)
+    : null,
   login: async ({
     cbu,
     password,
@@ -46,8 +48,13 @@ export const useUserAuth = create<useUserAuthStore>((set) => ({
       phone: userInfo.phoneNumber,
     };
 
+    localStorage.setItem("user", JSON.stringify(user));
+
     set({ user });
     return true;
   },
-  logout: () => set({ user: null }),
+  logout: () => {
+    localStorage.removeItem("user");
+    set({ user: null });
+  },
 }));

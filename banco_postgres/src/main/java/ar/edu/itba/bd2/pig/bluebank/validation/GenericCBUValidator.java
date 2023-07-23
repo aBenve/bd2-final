@@ -6,25 +6,16 @@ import jakarta.validation.ConstraintValidatorContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-@Component
-public class CBUValidator implements ConstraintValidator<CBU,String> {
-    private static final String BLUE_BANK_PREFIX = "000";
+public class GenericCBUValidator implements ConstraintValidator<GenericCBU,String> {
     private static final int CBU_LENGTH = 22;
 
-    private final UserRepository userRepository;
-
-    @Autowired
-    public CBUValidator(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-
     @Override
-    public void initialize(CBU constraintAnnotation) {
+    public void initialize(GenericCBU constraintAnnotation) {
         ConstraintValidator.super.initialize(constraintAnnotation);
     }
 
     @Override
     public boolean isValid(String value, ConstraintValidatorContext context) {
-        return value != null && value.length() == CBU_LENGTH && value.startsWith(BLUE_BANK_PREFIX) && userRepository.findByCbu(value).isEmpty();
+        return value != null && value.length() == CBU_LENGTH;
     }
 }

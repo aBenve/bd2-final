@@ -7,12 +7,13 @@ import {
 export async function POST(req: any) {
   const body = getBodyFromRequest(req);
 
-  const { cbu, password } = await body;
-  if (!cbu || !password) {
+  const { cbu, password, alias } = await body;
+  if (!cbu || !password || !alias) {
     return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
   }
 
   const res = await authenticateUser(cbu, password);
+
   if (res === undefined) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }

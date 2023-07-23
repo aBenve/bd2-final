@@ -1,12 +1,12 @@
 package ar.edu.itba.bd2.pig.bluebank.form;
 
-import ar.edu.itba.bd2.pig.bluebank.validation.CBU;
+import ar.edu.itba.bd2.pig.bluebank.validation.BlueBankCBU;
 import ar.edu.itba.bd2.pig.bluebank.validation.UniqueEmail;
 import ar.edu.itba.bd2.pig.bluebank.validation.UniquePhoneNumber;
 import jakarta.validation.constraints.NotBlank;
 
 public class UserForm {
-    @CBU
+    @BlueBankCBU
     private String cbu;
     @NotBlank
     private String name;
