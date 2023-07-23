@@ -1,12 +1,12 @@
-version: '3'
+version: "3"
 services:
   postgres:
     image: postgres
     restart: always
     environment:
-      POSTGRES_USER: usuario
+      POSTGRES_USER: admin
       POSTGRES_PASSWORD: 123
-      POSTGRES_DB: pig_backend_users
+      POSTGRES_DB: users
     ports:
       - 5431:5432
     volumes:
