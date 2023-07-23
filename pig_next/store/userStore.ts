@@ -28,9 +28,11 @@ export const useUserAuth = create<useUserAuthStore>((set) => ({
     alias: string;
   }) => {
     const res = await axiosClient.post("/login", {
-      cbu,
-      password,
-      alias,
+      body: {
+        cbu,
+        password,
+        alias,
+      },
     });
 
     if (res.status !== 200) {

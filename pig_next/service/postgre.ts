@@ -95,5 +95,4 @@ const client = globalPostgre.client ?? preparedClient.getClient();
 
 export default client;
 
-console.log("globalPostgre.client", globalPostgre.client);
 globalPostgre.client = client;

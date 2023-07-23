@@ -13,6 +13,7 @@ export async function POST(req: any) {
   }
 
   const res = await authenticateUser(cbu, password);
+
   if (res === undefined) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   }
