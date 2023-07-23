@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { client } from "../../../service/postgre";
 import {
+  AccountIdentifiersWithType,
   AccountWithOneIdentifier,
   AccountWithOneIdentifierAndTokenRequest,
   QueueTransaction,
+  Transaction,
   UserPublic,
 } from "../../../types";
 import {
@@ -25,10 +27,12 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
     }
     const body = await getBodyFromRequest(req);
 
-    const cbu = await fromIdentifierToCBU(
-      fromSearchParamsToAccountIdentifier(searchParams),
-      client
-    );
+    const identifierWithType: AccountIdentifiersWithType = {
+      type: body.type,
+      ...fromSearchParamsToAccountIdentifier(searchParams),
+    };
+
+    const cbu = await fromIdentifierToCBU(identifierWithType, client);
     const token = body.secret_token;
 
     if (!(await checkIfUserIsValid(cbu, token))) {
@@ -37,17 +41,31 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
 
     const userQueueName = cbu + "-transactions";
     const toRes = {
-      contacts: new Set<string>(),
+      contacts: new Set<AccountIdentifiersWithType>(),
     };
 
     await forEachMessage(userQueueName, (message) => {
-      const transaction: QueueTransaction = JSON.parse(
-        message.content.toString()
+      const transaction: Transaction = JSON.parse(message.content.toString());
+
+      const originCBU = fromIdentifierToCBU(
+        {
+          type: transaction.originIdentifierType,
+          [transaction.originIdentifierType]: transaction.originIdentifier,
+        },
+        client
       );
-      if (transaction.originCBU === cbu) {
-        toRes.contacts.add(transaction.destinationCBU);
+
+      if (originCBU === cbu) {
+        toRes.contacts.add({
+          type: transaction.destinationIdentifierType,
+          [transaction.destinationIdentifierType]:
+            transaction.destinationIdentifier,
+        });
       } else {
-        toRes.contacts.add(transaction.originCBU);
+        toRes.contacts.add({
+          type: transaction.originIdentifierType,
+          [transaction.originIdentifierType]: transaction.originIdentifier,
+        });
       }
     });
 
@@ -62,8 +80,17 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
       if (contactCBU.done) {
         break;
       }
+
+      const contactCBUIdentifierWithType: AccountIdentifiersWithType = {
+        type: contactCBU.value.type,
+        [contactCBU.value.type]:
+          contactCBU.value[
+            contactCBU.value.type as keyof AccountWithOneIdentifier
+          ],
+      };
+
       const user = fromIdentifierToUserPublic(
-        { cbu: contactCBU.value } as AccountWithOneIdentifier,
+        contactCBUIdentifierWithType,
         client
       );
       if (user) {

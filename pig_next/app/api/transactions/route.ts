@@ -1,47 +1,36 @@
 import { NextResponse } from "next/server";
 import {
   AccountWithOneIdentifierAndTokenRequest,
-  QueueTransaction,
   Transaction,
 } from "../../../types";
-import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
-import {
-  checkIfUserIsValid,
-  forEachMessage,
-  fromSearchParamsToAccountIdentifier,
-} from "../../../utils/middleware";
-import { client } from "../../../service/postgre";
-import { rabbitChannel } from "../../../service/rabbitmq";
+import { checkIfUserIsValid, forEachMessage } from "../../../utils/middleware";
 
 export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
   const searchParams = new URL(req.nextUrl).searchParams;
   try {
-    if (!searchParams) {
-      return NextResponse.json({ error: "Missing body" }, { status: 400 });
+    if (!searchParams.get("cbu") || !searchParams.get("secretToken")) {
+      return NextResponse.json(
+        { error: "Missing search params" },
+        { status: 400 }
+      );
     }
-
-    const cbu = await fromIdentifierToCBU(
-      fromSearchParamsToAccountIdentifier(searchParams),
-      client
-    );
-    if (!cbu) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-    const userQueueName = cbu + "-transactions";
+    const cbu = searchParams.get("cbu")!;
     const token = searchParams.get("secretToken")!;
+
+    const userQueueName = cbu + "-transactions";
 
     if (!(await checkIfUserIsValid(cbu, token))) {
       return NextResponse.json({ error: "User not valid" }, { status: 404 });
     }
 
     const toRes: {
-      transactions: QueueTransaction[];
+      transactions: Transaction[];
     } = {
       transactions: [],
     };
     await forEachMessage(userQueueName, (message) =>
       toRes.transactions.push(
-        JSON.parse(message.content.toString()) as QueueTransaction
+        JSON.parse(message.content.toString()) as Transaction
       )
     );
 

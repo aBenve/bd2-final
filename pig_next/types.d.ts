@@ -22,9 +22,11 @@ export interface UserPublic {
   cbu: string;
 }
 export interface Transaction {
-  originIdentifier: AccountWithOneIdentifier;
-  destinationIdentifier: AccountWithOneIdentifier;
-  amount: number;
+  destinationIdentifierType: string;
+  originIdentifierType: string;
+  originIdentifier: string;
+  destinationIdentifier: string;
+  balance: number;
   date: Date;
 }
 
@@ -35,6 +37,10 @@ export interface AccountIdentifiers {
   phone?: string;
   email?: string;
 }
+
+export type AccountIdentifiersWithType = AccountIdentifiers & {
+  type: string;
+};
 
 export type AccountWithOneIdentifier = Pick<
   AccountIdentifiers,

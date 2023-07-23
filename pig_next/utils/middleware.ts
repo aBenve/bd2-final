@@ -1,10 +1,13 @@
-import { User, NewUserInfo } from "../types";
+import { GetMessage } from "amqplib";
+import { rabbitChannel } from "../service/rabbitmq";
+import { User, NewUserInfo, AccountIdentifiers } from "../types";
 
 const POSTGRE_BANK_API = process.env.POSTGRE_BANK_API;
 const MONGO_BANK_API = process.env.MONGO_BANK_API;
 
 const BANK_ENDPOINTS = {
   isUser: { endpoint: "/isUser", method: "GET" },
+  checkFunds: { endpoint: "/checkFunds", method: "GET" },
   verifyUser: { endpoint: "/verifyUser", method: "POST" },
   authenticateUser: { endpoint: "/authorizeUser", method: "POST" },
   userPrivate: { endpoint: "/userPrivate", method: "GET" },
@@ -33,6 +36,24 @@ function getEndpoint(cbu: string, endpoint: string) {
   );
 }
 
+export function fromSearchParamsToAccountIdentifier(
+  searchParams: URLSearchParams
+): Pick<AccountIdentifiers, "cbu" | "email" | "name" | "phone"> {
+  if (searchParams.get("cbu")) {
+    return { cbu: searchParams.get("cbu") as string };
+  }
+  if (searchParams.get("email")) {
+    return { email: searchParams.get("email") as string };
+  }
+  if (searchParams.get("name")) {
+    return { name: searchParams.get("name") as string };
+  }
+  if (searchParams.get("phone")) {
+    return { phone: searchParams.get("phone") as string };
+  }
+  throw new Error("No valid identifier found");
+}
+
 function addParamsToBody(
   options: RequestInit,
   params: {
@@ -58,6 +79,25 @@ function addParamsToRequest(
     "?" +
     params.map((param) => (param.name + "=" + param.value) as string).join("&")
   );
+}
+
+export async function getUserBalance({
+  cbu,
+  secret_token,
+}: {
+  cbu: string;
+  secret_token: string;
+}) {
+  const options = {
+    method: BANK_ENDPOINTS.checkFunds.method,
+  };
+  const res = await fetch(
+    getEndpoint(cbu, BANK_ENDPOINTS.checkFunds.endpoint) +
+      `?cbu=${cbu}` +
+      `&secretToken=${secret_token}`,
+    options
+  );
+  return (await res.json()).balance;
 }
 
 export async function checkIfUserExists(cbu: string): Promise<Boolean> {
@@ -421,4 +461,20 @@ export async function getBodyFromRequest(req: any) {
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString());
+}
+
+export async function forEachMessage(
+  queueName: string,
+  consumer: (msg: GetMessage) => void
+) {
+  rabbitChannel.assertQueue(queueName, { durable: true });
+  while (true) {
+    const message = await rabbitChannel.get(queueName, { noAck: false });
+    if (!message) {
+      break;
+    }
+    consumer(message);
+  }
+  rabbitChannel.nackAll(true);
+  return;
 }

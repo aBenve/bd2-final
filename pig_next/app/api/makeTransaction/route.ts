@@ -15,14 +15,28 @@ import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
 export async function POST(req: NextRequest) {
   try {
     const body = await getBodyFromRequest(req);
-    const { originIdentifier, destinationIdentifier, amount } =
-      body as unknown as Transaction;
-    if (!originIdentifier || !destinationIdentifier || !amount) {
+    const {
+      originIdentifierType,
+      destinationIdentifierType,
+      originIdentifier,
+      destinationIdentifier,
+      balance,
+    } = body as unknown as Transaction;
+    if (!originIdentifier || !destinationIdentifier || !balance) {
       return NextResponse.json({ error: "Missing body" }, { status: 400 });
     }
-    const originCBU = await fromIdentifierToCBU(originIdentifier, client);
+    const originCBU = await fromIdentifierToCBU(
+      {
+        type: originIdentifierType,
+        [originIdentifierType]: originIdentifier,
+      },
+      client
+    );
     const destinationCBU = await fromIdentifierToCBU(
-      destinationIdentifier,
+      {
+        type: destinationIdentifierType,
+        [destinationIdentifierType]: destinationIdentifier,
+      },
       client
     );
     if (!originCBU || !destinationCBU) {
@@ -49,9 +63,11 @@ export async function POST(req: NextRequest) {
         body.amount
       )
     ) {
-      const msg: QueueTransaction = {
-        originCBU,
-        destinationCBU,
+      const msg: Transaction = {
+        originIdentifierType,
+        destinationIdentifierType,
+        originIdentifier,
+        destinationIdentifier,
         balance: body.amount,
         date: new Date(),
       };
@@ -72,7 +88,10 @@ export async function POST(req: NextRequest) {
           persistent: true,
         }
       );
-      NextResponse.json({ message: "Transaction sent to queue" });
+      NextResponse.json(
+        { message: "Transaction sent to queue" },
+        { status: 200 }
+      );
     } else {
       return NextResponse.json(
         { error: "Internal Server Error" },
