@@ -303,6 +303,12 @@ router.get("/getUser", userController.getUser);
 //verifyUser
 router.post("/verifyUser", authController.verifyUser);
 
+//privateUser
+router.get("/userPrivate", authController.privateUser);
+
+//authorizeUser
+router.post("/authorizeUser", authController.authorizeUser);
+
 /**
  * @swagger
  * tags:

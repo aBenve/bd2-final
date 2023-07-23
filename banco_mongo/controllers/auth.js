@@ -6,16 +6,16 @@ module.exports.authorizeUser = async (req, res) => {
     const data = await Model.findOne({ cbu: cbu });
     if (await bcrypt.compare(password, data.hashedPassword)) {
       res.status(200).json({
-        message: "User authorized",
+        description: "User authorized",
         content: {
           name: data.name,
           email: data.email,
-          phone: data.phone,
-          secret_token: data.secret_token,
+          phoneNumber: data.phone,
+          secretToken: data.secret_token,
         },
       });
     } else {
-      res.status(400).json({ message: "Authentication failure" });
+      res.status(400).json({ description: "Authentication failure" });
     }
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -27,9 +27,9 @@ module.exports.verifyUser = async (req, res) => {
   try {
     const data = await Model.findOne({ cbu: cbu, secret_token: secret_token });
     if (data) {
-      res.status(200).json({ message: "Valid Credentials" });
+      res.status(200).json({ description: "Valid Credentials" });
     } else {
-      res.status(400).json({ message: "Authentication failures" });
+      res.status(400).json({ description: "Authentication failure" });
     }
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -42,15 +42,15 @@ module.exports.privateUser = async (req, res) => {
     const data = await Model.findOne({ cbu: cbu, secret_token: token });
     if (data) {
       res.status(200).json({
-        message: "User found",
+        description: "User found",
         content: {
           name: data.name,
           email: data.email,
-          phone: data.phone,
+          phoneNumber: data.phone,
         },
       });
     } else {
-      res.status(400).json({ message: "Authentication failure" });
+      res.status(400).json({ description: "Authentication failure" });
     }
   } catch (error) {
     res.status(400).json({ message: error.message });
