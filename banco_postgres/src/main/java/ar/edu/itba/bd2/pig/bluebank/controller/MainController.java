@@ -10,7 +10,7 @@ import ar.edu.itba.bd2.pig.bluebank.model.User;
 import ar.edu.itba.bd2.pig.bluebank.repository.TransactionHistoryRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.TransactionRepository;
 import ar.edu.itba.bd2.pig.bluebank.repository.UserRepository;
-import ar.edu.itba.bd2.pig.bluebank.validation.CBU;
+import ar.edu.itba.bd2.pig.bluebank.validation.BlueBankCBU;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
@@ -98,10 +98,10 @@ public class MainController {
     }
 
     @GetMapping("/getUser")
-    public UserDTO getUser(@Valid @CBU String userCBU){
+    public UserDTO getUser(@Valid @BlueBankCBU String cbu){
         return UserDTO.fromUser(
-                userRepository.findByCbu(userCBU)
-                .orElseThrow(userNotFoundExceptionSupplier.apply(userCBU))
+                userRepository.findByCbu(cbu)
+                .orElseThrow(userNotFoundExceptionSupplier.apply(cbu))
         );
     }
 

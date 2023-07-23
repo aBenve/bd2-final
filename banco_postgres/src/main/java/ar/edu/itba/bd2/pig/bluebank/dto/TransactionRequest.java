@@ -1,6 +1,7 @@
 package ar.edu.itba.bd2.pig.bluebank.dto;
 
-import ar.edu.itba.bd2.pig.bluebank.validation.CBU;
+import ar.edu.itba.bd2.pig.bluebank.validation.BlueBankCBU;
+import ar.edu.itba.bd2.pig.bluebank.validation.GenericCBU;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.validator.constraints.UUID;
@@ -8,9 +9,9 @@ import org.hibernate.validator.constraints.UUID.LetterCase;
 import org.springframework.format.annotation.NumberFormat;
 
 public class TransactionRequest {
-    @CBU
+    @GenericCBU
     private String originCBU;
-    @CBU
+    @GenericCBU
     private String destinationCBU;
     @UUID(letterCase = LetterCase.INSENSITIVE)
     private String originSecretToken;
