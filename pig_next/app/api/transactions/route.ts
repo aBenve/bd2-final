@@ -15,7 +15,7 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
       );
     }
     const cbu = searchParams.get("cbu")!;
-    const token = searchParams.get("secretToken")!;
+    const token = searchParams.get("secret_token")!;
 
     const userQueueName = cbu + "-transactions";
 

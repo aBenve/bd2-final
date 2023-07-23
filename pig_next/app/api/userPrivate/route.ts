@@ -8,8 +8,27 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
   const searchParams = new URL(req.nextUrl).searchParams;
 
   try {
-    const cbu = (await fromIdentifierToCBU(searchParams, client)) as string;
-    const token = searchParams.get("secretToken") as string;
+    if (
+      !searchParams.get("secret_token") ||
+      !searchParams.get("identifier") ||
+      !searchParams.get("type")
+    ) {
+      return NextResponse.json(
+        { error: "Missing search params" },
+        { status: 400 }
+      );
+    }
+
+    const identifierWithType = {
+      type: searchParams.get("type")!,
+      [searchParams.get("type")!]: searchParams.get("identifier")!,
+    };
+
+    const cbu = (await fromIdentifierToCBU(
+      identifierWithType,
+      client
+    )) as string;
+    const token = searchParams.get("secret_token") as string;
 
     if (!(await checkIfUserIsValid(cbu, token))) {
       NextResponse.json({ error: "User not Valid" }, { status: 401 });
