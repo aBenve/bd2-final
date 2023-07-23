@@ -9,9 +9,7 @@ function useBalance() {
     "userBalance",
     () => {
       return axiosClient
-        .get(
-          `/api/checkFunds?cbu=${user?.cbu}?secret_token=${user?.secret_token}`
-        )
+        .get(`/checkFunds?cbu=${user?.cbu}&secret_token=${user?.secret_token}`)
         .then((res) => res.data);
     },
     {

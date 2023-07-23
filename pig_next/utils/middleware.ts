@@ -97,7 +97,7 @@ export async function getUserBalance({
       `&secretToken=${secret_token}`,
     options
   );
-  return (await res.json()).balance;
+  return await res.json();
 }
 
 export async function checkIfUserExists(cbu: string): Promise<Boolean> {
