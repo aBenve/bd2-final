@@ -71,7 +71,10 @@ class PostgreClient {
         alias VARCHAR(20) NOT NULL,
         creation_date TIMESTAMP NOT NULL,
     
-        CONSTRAINT cbu_unique UNIQUE (cbu)
+        CONSTRAINT cbu_unique UNIQUE (cbu),
+        CONSTRAINT email_unique UNIQUE (email),
+        CONSTRAINT phone_unique UNIQUE (phone)
+
     );`
       )
       .then((res) => {

@@ -11,7 +11,7 @@ function useRecentTransactions() {
     () => {
       return axiosClient
         .get(
-          `/api/transactions?cbu=${user?.cbu}&secretToken=${user?.secret_token}`
+          `/transactions?cbu=${user?.cbu}&secret_token=${user?.secret_token}`
         )
         .then((res) => res.data);
     }

@@ -8,12 +8,13 @@ import { checkIfUserIsValid, forEachMessage } from "../../../utils/middleware";
 export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
   const searchParams = new URL(req.nextUrl).searchParams;
   try {
-    if (!searchParams.get("cbu") || !searchParams.get("secretToken")) {
+    if (!searchParams.get("cbu") || !searchParams.get("secret_token")) {
       return NextResponse.json(
         { error: "Missing search params" },
         { status: 400 }
       );
     }
+
     const cbu = searchParams.get("cbu")!;
     const token = searchParams.get("secret_token")!;
 
@@ -23,16 +24,10 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
       return NextResponse.json({ error: "User not valid" }, { status: 404 });
     }
 
-    const toRes: {
-      transactions: Transaction[];
-    } = {
-      transactions: [],
-    };
-    await forEachMessage(userQueueName, (message) =>
-      toRes.transactions.push(
-        JSON.parse(message.content.toString()) as Transaction
-      )
-    );
+    const toRes: Transaction[] = [];
+    await forEachMessage(userQueueName, (message) => {
+      toRes.push(JSON.parse(message.content.toString()) as Transaction);
+    });
 
     return NextResponse.json(toRes);
   } catch (error) {
