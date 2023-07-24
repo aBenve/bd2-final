@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   AccountIdentifiersWithType,
   AccountWithOneIdentifier,
-  AccountWithOneIdentifierAndTokenRequest,
   Transaction,
   UserPublic,
 } from "../../../types";
@@ -17,7 +16,7 @@ import {
   forEachMessage,
 } from "../../../utils/middleware";
 
-export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
+export async function GET(req: NextRequest) {
   try {
     const searchParams = new URL(req.nextUrl).searchParams;
     if (!searchParams) {

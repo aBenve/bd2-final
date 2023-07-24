@@ -94,7 +94,6 @@ const globalPostgre = globalThis as unknown as {
 const preparedClient = new PostgreClient();
 
 const client = globalPostgre.client ?? preparedClient.getClient();
-//console.log("client", client);
 
 export default client;
 

@@ -78,14 +78,14 @@ class RabbitMQClient {
 
   constructor() {}
 
-  public async getChannel(): Promise<Channel> {
+  public static async getChannel(): Promise<Channel> {
     if (!RabbitMQClient.channelPromise) {
       RabbitMQClient.channelPromise = this.initialize();
     }
     return RabbitMQClient.channelPromise;
   }
 
-  private async initialize(): Promise<Channel> {
+  private static async initialize(): Promise<Channel> {
     try {
       const connection = await amqp.connect(
         "amqp://" + process.env.RABBITMQ_HOST + ":" + process.env.RABBITMQ_PORT
@@ -103,8 +103,10 @@ class RabbitMQClient {
   }
 }
 
-export default RabbitMQClient;
+let rabbitService: Promise<Channel>;
+// if (!global.rabbitChannel) {
+//   global.rabbitChannel = RabbitMQClient.getChannel();
+// }
 
-const rabbitService = new RabbitMQClient();
-
-export const rabbitChannelPromise = rabbitService.getChannel();
+// rabbitService = global.rabbitChannel;
+export const rabbitChannelPromise = RabbitMQClient.getChannel();

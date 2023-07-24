@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
-import { AccountWithOneIdentifierRequest } from "../../../types";
+import { NextRequest, NextResponse } from "next/server";
 import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
 
-export async function GET(req: AccountWithOneIdentifierRequest) {
+export async function GET(req: NextRequest) {
   const searchParams = new URL(req.nextUrl).searchParams;
   try {
     if (!searchParams.has("type") || !searchParams.has("identifier")) {

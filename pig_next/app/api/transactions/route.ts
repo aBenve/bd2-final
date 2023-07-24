@@ -1,11 +1,8 @@
-import { NextResponse } from "next/server";
-import {
-  AccountWithOneIdentifierAndTokenRequest,
-  Transaction,
-} from "../../../types";
+import { NextRequest, NextResponse } from "next/server";
+import { Transaction } from "../../../types";
 import { checkIfUserIsValid, forEachMessage } from "../../../utils/middleware";
 
-export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
+export async function GET(req: NextRequest) {
   const searchParams = new URL(req.nextUrl).searchParams;
   try {
     if (!searchParams.get("cbu") || !searchParams.get("secret_token")) {

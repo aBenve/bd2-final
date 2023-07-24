@@ -134,11 +134,11 @@ export async function authenticateUser(
       "Content-Type": "application/json",
     },
   };
-  options = addParamsToBody(options, { cbu, password });
+  const optionsWithBody = addParamsToBody(options, { cbu, password });
 
   const res = await fetch(
     getEndpoint(cbu, BANK_ENDPOINTS.authenticateUser.endpoint),
-    options
+    optionsWithBody
   );
 
   if (res.status === 400) {
@@ -172,13 +172,13 @@ export async function iniciateTransaction(
     BANK_ENDPOINTS.initiateTransaction.endpoint
   );
 
-  options = addParamsToBody(options, {
+  const originOptionsWithBody = addParamsToBody(options, {
     cbu: originCBU,
     amount: balance,
     secretToken: originSecretToken,
   });
 
-  let res = await fetch(initTransactionEndpoint, options);
+  let res = await fetch(initTransactionEndpoint, originOptionsWithBody);
 
   if (!res.ok) {
     return false;
@@ -197,13 +197,13 @@ export async function iniciateTransaction(
     BANK_ENDPOINTS.initiateTransaction.endpoint
   );
 
-  options = addParamsToBody(options, {
+  const DestinationOptionsWithBody = addParamsToBody(options, {
     cbu: destinationCBU,
     amount: balance,
     secretToken: destinationSecretToken,
   });
 
-  res = await fetch(initTransactionEndpoint, options);
+  res = await fetch(initTransactionEndpoint, DestinationOptionsWithBody);
 
   if (!res.ok) {
     return false;
@@ -284,14 +284,14 @@ async function addFunds(
   };
   let endpoint = getEndpoint(cbu, BANK_ENDPOINTS.addFunds.endpoint);
 
-  options = addParamsToBody(options, {
+  const optionsWithBody = addParamsToBody(options, {
     cbu,
     amount,
     transactionId,
     secretToken,
   });
 
-  const res = await fetch(endpoint, options);
+  const res = await fetch(endpoint, optionsWithBody);
   return res.ok;
 }
 
@@ -310,14 +310,14 @@ async function removeFunds(
   };
   let endpoint = getEndpoint(cbu, BANK_ENDPOINTS.removeFunds.endpoint);
 
-  options = addParamsToBody(options, {
+  const optionsWithBody = addParamsToBody(options, {
     cbu,
     amount,
     transactionId,
     secretToken,
   });
 
-  const res = await fetch(endpoint, options);
+  const res = await fetch(endpoint, optionsWithBody);
   return res.ok;
 }
 
