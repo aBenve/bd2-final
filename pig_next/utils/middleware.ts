@@ -127,7 +127,15 @@ export async function checkIfUserIsValid(
 export async function authenticateUser(
   cbu: string,
   password: string
-): Promise<NewUserInfo | undefined> {
+): Promise<
+  | {
+      secretToken: string;
+      email: string;
+      name: string;
+      phoneNumber: string;
+    }
+  | undefined
+> {
   let options = {
     method: BANK_ENDPOINTS.authenticateUser.method,
     headers: {
