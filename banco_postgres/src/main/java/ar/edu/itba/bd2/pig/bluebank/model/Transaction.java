@@ -23,9 +23,6 @@ public class Transaction {
     private BigDecimal amount;
     @Column(name = "is_completed")
     private boolean isCompleted;
-    @Column(name = "role")
-    @Enumerated()
-    private TransactionRole role;
 
     public Transaction() {
         super();
@@ -73,14 +70,6 @@ public class Transaction {
 
     public void setUser(User user) {
         this.user = user;
-    }
-
-    public TransactionRole getRole() {
-        return role;
-    }
-
-    public void setRole(TransactionRole role) {
-        this.role = role;
     }
 
     @Override
