@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         body.balance
       )
     ) {
-      const msg: Transaction = {
+      const originMsg: Transaction = {
         originIdentifierType,
         destinationIdentifierType,
         originIdentifier,
@@ -80,21 +80,40 @@ export async function POST(req: NextRequest) {
         balance: body.balance,
         date: new Date(),
       };
+      const destinationMsg: Transaction = {
+        originIdentifierType: destinationIdentifierType,
+        destinationIdentifierType: originIdentifierType,
+        originIdentifier: destinationIdentifier,
+        destinationIdentifier: originIdentifier,
+        balance: body.balance,
+        date: new Date(),
+      };
 
-      const userQueueName = originCBU + "-transactions";
-      (await rabbitChannelPromise).assertQueue(userQueueName, {
+      const originQueueName = originCBU + "-transactions";
+      const destinationQueueName = destinationCBU + "-transactions";
+      (await rabbitChannelPromise).assertQueue(originQueueName, {
+        durable: true,
+      });
+      (await rabbitChannelPromise).assertQueue(destinationQueueName, {
         durable: true,
       });
       (await rabbitChannelPromise).sendToQueue(
         "transactions",
-        Buffer.from(JSON.stringify(msg)),
+        Buffer.from(JSON.stringify(originMsg)),
         {
           persistent: true,
         }
       );
       (await rabbitChannelPromise).sendToQueue(
-        userQueueName,
-        Buffer.from(JSON.stringify(msg)),
+        originQueueName,
+        Buffer.from(JSON.stringify(originMsg)),
+        {
+          persistent: true,
+        }
+      );
+      (await rabbitChannelPromise).sendToQueue(
+        destinationQueueName,
+        Buffer.from(JSON.stringify(destinationMsg)),
         {
           persistent: true,
         }
