@@ -33,7 +33,7 @@ module.exports.getUser = async (req, res) => {
     if (data) {
       res.status(200).json({
         description: "user found ",
-        content: { CBU: data.cbu, name: data.name },
+        content: { cbu: data.cbu, name: data.name },
       });
     } else {
       res.status(404).json({ message: "User not found" });
@@ -55,7 +55,7 @@ module.exports.isUser = async (req, res) => {
 
 module.exports.addFunds = async (req, res) => {
   try {
-    const cbu = req.body.CBU;
+    const cbu = req.body.cbu;
     const amount = req.body.amount;
     const token = req.body.secretToken;
     const transactionID = req.body.transactionId;
@@ -100,17 +100,18 @@ module.exports.removeFunds = async (req, res) => {
 module.exports.checkFunds = async (req, res) => {
   try {
     const cbu = req.body.cbu;
-    const amount = req.body.amount;
+    // const amount = req.body.amount;
     const token = req.body.token;
     const data = await Model.findOne({ cbu: cbu, secret_token: token });
     if (data) {
-      if (data.balance >= amount) {
-        res
-          .status(200)
-          .json({ message: "Sufficient funds", balance: data.balance });
-      } else {
-        res.status(404).json({ message: "Insufficient funds" });
-      }
+      // if (data.balance >= amount) {
+      res.status(200).json({
+        description: "Valid credentials",
+        content: { balance: data.balance },
+      });
+      // } else {
+      //   res.status(404).json({ message: "Insufficient funds" });
+      // }
     } else {
       res.status(400).json({ message: "Authentication failure" });
     }
