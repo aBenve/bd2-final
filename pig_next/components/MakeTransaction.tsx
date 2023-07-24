@@ -12,7 +12,6 @@ function MakeTransaction() {
       <Formik
         initialValues={{ identifierType: "name", identifier: "", amount: "" }}
         onSubmit={(values, helpers) => {
-          console.log(values);
           makeTransactionMutation.mutate({
             destinationIdentifierType: values.identifierType,
             destinationIdentifier: values.identifier,

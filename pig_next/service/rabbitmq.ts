@@ -107,6 +107,4 @@ export default RabbitMQClient;
 
 const rabbitService = new RabbitMQClient();
 
-console.log(rabbitService.getChannel());
-
 export const rabbitChannelPromise = rabbitService.getChannel();

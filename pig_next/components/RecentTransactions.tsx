@@ -5,8 +5,6 @@ import TransactionCard from "./TransactionCard";
 function RecentTransactions() {
   const { data: transactions, isLoading } = useRecentTransactions();
 
-  console.log(transactions);
-
   return (
     <div className="flex w-full flex-col gap-4">
       <span className="text-stone-500">Recent transactions</span>

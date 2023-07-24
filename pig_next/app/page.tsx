@@ -1,19 +1,17 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "react-query";
-import Card from "../components/Card";
 import CardGrid from "../components/CardGrid";
 import Header from "../components/Header";
 import MakeTransaction from "../components/MakeTransaction";
 import RecentTransactions from "../components/RecentTransactions";
 import { useUserAuth } from "../store/userStore";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 
 export default function Home() {
   const { user } = useUserAuth();
-  const router = useRouter();
 
-  if (!user) router.push("/login");
+  if (!user) redirect("/login");
 
   return (
     <QueryClientProvider client={new QueryClient()}>

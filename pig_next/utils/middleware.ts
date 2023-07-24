@@ -370,7 +370,6 @@ export async function forEachMessage(
     const message = await (
       await rabbitChannelPromise
     ).get(queueName, { noAck: false });
-    console.log(message);
     if (!message) {
       break;
     }
