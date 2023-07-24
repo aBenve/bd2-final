@@ -27,7 +27,6 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -158,6 +157,11 @@ public class MainController {
                 .orElseThrow(noActiveTransactionForUserSupplier.apply(fundsRequest.getCbu()));
 
         checkFundsRequest(fundsRequest, transaction);
+        // Check that funds are enough for operation
+        var resultingFunds = BigDecimal.ZERO.add(user.getBalance()).add(parseBigDecimal(fundsRequest.getAmount())).stripTrailingZeros();
+        if(resultingFunds.precision() - resultingFunds.scale() > 15){
+            throw new IllegalOperationException("Destination user cannot receive that amount into their account.");
+        }
 
         user.setBalance(user.getBalance().add(parseBigDecimal(fundsRequest.getAmount()) , financialMathContext));
         userRepository.updateBalanceByCbu(user.getBalance(), user.getCbu());
@@ -175,6 +179,9 @@ public class MainController {
                 .orElseThrow(noActiveTransactionForUserSupplier.apply(fundsRequest.getCbu()));
 
         checkFundsRequest(fundsRequest, transaction);
+        // Check that funds are enough for operation
+        if(user.getBalance().compareTo(parseBigDecimal(fundsRequest.getAmount())) < 0)
+            throw new IllegalOperationException("Origin user does not have the required funds for this transaction.");
 
         user.setBalance(user.getBalance().subtract(parseBigDecimal(fundsRequest.getAmount()) , financialMathContext));
         userRepository.updateBalanceByCbu(user.getBalance(), user.getCbu());
@@ -187,64 +194,31 @@ public class MainController {
     @PostMapping("/initiateTransaction")
     @Transactional
     public String initiateTransaction(@Valid @RequestBody TransactionRequest transactionRequest){
-        Optional<User> originUser = userRepository.findByCbu(transactionRequest.getOriginCBU());
-        Optional<User> destinationUser = userRepository.findByCbu(transactionRequest.getDestinationCBU());
+        User user = userRepository.findByCbu(transactionRequest.getCbu()).orElseThrow(SecureUserNotFoundException::new);
+        authenticateUser(transactionRequest);
 
-        // Check that at least one user belongs to the bank
-        if(originUser.isEmpty() && destinationUser.isEmpty())
-            throw new ResourceNotFoundException(String.format(
-                    "Users %s and %s are not registered on Blue Bank. Please include a valid user from this bank.",
-                    transactionRequest.getOriginCBU(), transactionRequest.getDestinationCBU()));
-
-        // Check that origin and destination user are not the same
-        if(originUser.isPresent() && destinationUser.isPresent() && originUser.get().equals(destinationUser.get()))
-            throw new IllegalOperationException("Cannot initiate a transaction from an account to itself.");
-
-        // Check that none of the present users have active transactions
-        if(originUser.isPresent() && originUser.get().getActiveTransaction() != null)
+        // Check that user does not have any active transaction
+        if(user.getActiveTransaction() != null)
             throw new IllegalOperationException(
                     String.format("There is already an active transaction for user %s, please try again later.",
-                            transactionRequest.getOriginCBU()));
-        if(destinationUser.isPresent() && destinationUser.get().getActiveTransaction() != null)
-            throw new IllegalOperationException(
-                    String.format("There is already an active transaction for user %s, please try again later.",
-                            transactionRequest.getDestinationCBU()));
-
-        // Check that funds are enough
-        if(originUser.isPresent() && originUser.get().getBalance().compareTo(parseBigDecimal(transactionRequest.getAmount())) < 0)
-            throw new IllegalOperationException("Origin user does not have the required funds for this transaction.");
-
-        // Check that there is no overflow when adding funds to destination
-        if(destinationUser.isPresent()){
-            var resultingFunds = BigDecimal.ZERO.add(destinationUser.get().getBalance()).add(parseBigDecimal(transactionRequest.getAmount())).stripTrailingZeros();
-            if(resultingFunds.precision() - resultingFunds.scale() > 15){
-                throw new IllegalOperationException("Destination user cannot receive that amount into their account.");
-            }
-        }
+                            transactionRequest.getCbu()));
 
         final UUID transactionID = UUID.randomUUID();
         final BigDecimal transactionAmount = parseBigDecimal(transactionRequest.getAmount());
 
-        final BiConsumer<User, TransactionRole> lockAccountAndRegisterTransaction = (user, role) -> {
-            user.lock();
-            userRepository.save(user);
+        user.lock();
+        userRepository.save(user);
 
-            final Transaction originTransaction = new Transaction();
-            originTransaction.setUserId(user.getId());
-            originTransaction.setAmount(transactionAmount);
-            originTransaction.setRole(role);
-            originTransaction.setTransactionId(transactionID);
-            transactionRepository.save(originTransaction);
-        };
-
-        originUser.ifPresent(user -> lockAccountAndRegisterTransaction.accept(user, TransactionRole.ORIGIN));
-        destinationUser.ifPresent(user -> lockAccountAndRegisterTransaction.accept(user, TransactionRole.DESTINATION));
+        final Transaction originTransaction = new Transaction();
+        originTransaction.setUserId(user.getId());
+        originTransaction.setAmount(transactionAmount);
+        originTransaction.setTransactionId(transactionID);
+        transactionRepository.save(originTransaction);
 
         // Register transaction to confirm later
         TransactionRecord record = new TransactionRecord();
         record.setId(transactionID);
-        record.setOriginCBU(transactionRequest.getOriginCBU());
-        record.setDestinationCBU(transactionRequest.getDestinationCBU());
+        record.setCbu(transactionRequest.getCbu());
         record.setAmount(transactionAmount);
         record.setCompletionDate(null); // confirm later
         transactionHistoryRepository.save(record);
@@ -256,25 +230,16 @@ public class MainController {
     @PostMapping("/endTransaction")
     @Transactional
     public void endTransaction(@Valid @RequestBody @org.hibernate.validator.constraints.UUID(letterCase = LetterCase.INSENSITIVE) String transactionId){
-        Collection<Transaction> transactions = transactionRepository.findDistinctByTransactionId(UUID.fromString(transactionId));
-        if(transactions.size() == 0)
-            throw new ResourceNotFoundException(String.format("There is no active transaction with id %s", transactionId));
-
+        Transaction transaction = transactionRepository.findByTransactionId(UUID.fromString(transactionId));
         TransactionRecord record = transactionHistoryRepository.findById(UUID.fromString(transactionId)).orElseThrow(() -> new ResourceNotFoundException("No record of transaction found."));
-        Optional<Transaction> originTransaction = transactions.stream().filter(t -> t.getRole().equals(TransactionRole.ORIGIN)).findFirst();
-        Optional<Transaction> destinationTransaction = transactions.stream().filter(t -> t.getRole().equals(TransactionRole.DESTINATION)).findFirst();
 
-        final Consumer<Transaction> removeTransactionAndUnlockUser =  transaction -> {
-            User user = transaction.getUser();
+        User user = transaction.getUser();
 
-            transactionRepository.delete(transaction);
-            user.setActiveTransaction(null);
-            user.unlock();
-            userRepository.save(user);
-        };
+        transactionRepository.delete(transaction);
+        user.setActiveTransaction(null);
+        user.unlock();
+        userRepository.save(user);
 
-        originTransaction.ifPresent(removeTransactionAndUnlockUser);
-        destinationTransaction.ifPresent(removeTransactionAndUnlockUser);
         record.setCompletionDate(LocalDateTime.now());
         transactionHistoryRepository.save(record);
     }
