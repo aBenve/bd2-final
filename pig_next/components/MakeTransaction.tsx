@@ -32,6 +32,7 @@ function MakeTransaction() {
               <option selected value="name">
                 Name
               </option>
+              <option value="alias">Alias</option>
               <option value="cbu">Cbu</option>
             </Field>
             <Field
