@@ -16,10 +16,17 @@ interface useUserAuthStore {
   logout: () => void;
 }
 
+function getLocalStorageUser() {
+  const user =
+    typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  if (user) {
+    return JSON.parse(user) as User;
+  }
+  return null;
+}
+
 export const useUserAuth = create<useUserAuthStore>((set) => ({
-  user: localStorage.getItem("user")
-    ? (JSON.parse(localStorage.getItem("user")!) as unknown as User)
-    : null,
+  user: getLocalStorageUser(),
   login: async ({
     cbu,
     password,

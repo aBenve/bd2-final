@@ -42,14 +42,15 @@ class PostgreClient {
       ?.query(
         `
       INSERT INTO users (name, uuid, email, phone, cbu, secret_token, alias, creation_date)
-      VALUES ('Juan Perez', '123e4567-e89b-12d3-a456-426614174000', 'juanperez@hotmail.com', '1234567890', '1234567890123456789012', '123456', 'Juan', '2020-01-01 00:00:00'),
-      ('Taylor Swift', '123e4567-e89b-12d3-a456-426614174001', '', '1234567890', '0000000000000000000001', '7395f2b7-d338-4770-bdbf-b7d4f9043f4c', 'Taylor', '2020-01-01 00:00:00'),
-      ('Carlos Menem', '123e4567-e89b-12d3-a456-426614174002', '', '1234567890', '0000000000000000000000', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Turco', '2020-01-01 00:00:00') 
+      VALUES 
+      ('Juan Perez', '123e4567-e89b-12d3-a456-426614174000', 'juanperez@hotmail.com', '1234567890', '1234567890123456789012', '123456', 'Juan', '2020-01-01 00:00:00'),
+      ('Taylor Swift', '123e4567-e89b-12d3-a456-426614174001', 'elturco@yahoo.com.ar', '0111234567', '0000000000000000000001', '7395f2b7-d338-4770-bdbf-b7d4f9043f4c', 'Taylor', '2020-01-01 00:00:00'),
+      ('Carlos Menem', '123e4567-e89b-12d3-a456-426614174002', 'swiftie001@gmail.com', '0117654321', '0000000000000000000000', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Turco', '2020-01-01 00:00:00') 
       ON CONFLICT DO NOTHING;
     `
       )
       .then((res) => {
-        console.log("User added successfully");
+        console.log("User added successfully", res.rowCount);
       })
       .catch((err) => {
         console.log("Error adding user");
@@ -71,7 +72,10 @@ class PostgreClient {
         alias VARCHAR(20) NOT NULL,
         creation_date TIMESTAMP NOT NULL,
     
-        CONSTRAINT cbu_unique UNIQUE (cbu)
+        CONSTRAINT cbu_unique UNIQUE (cbu),
+        CONSTRAINT email_unique UNIQUE (email),
+        CONSTRAINT phone_unique UNIQUE (phone)
+
     );`
       )
       .then((res) => {
@@ -91,7 +95,6 @@ const globalPostgre = globalThis as unknown as {
 const preparedClient = new PostgreClient();
 
 const client = globalPostgre.client ?? preparedClient.getClient();
-//console.log("client", client);
 
 export default client;
 

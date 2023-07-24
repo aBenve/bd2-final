@@ -15,10 +15,8 @@ public class TransactionRecord {
     @Id
     @Column(name = "transaction_id")
     UUID id;
-    @Column(name = "origin_cbu", nullable = false)
-    String originCBU;
-    @Column(name = "destination_cbu", nullable = false)
-    String destinationCBU;
+    @Column(name = "cbu", nullable = false)
+    String cbu;
     @Column(name = "amount", nullable = false)
     @Digits(integer = 17, fraction = 2)
     BigDecimal amount;
@@ -36,21 +34,14 @@ public class TransactionRecord {
         this.id = id;
     }
 
-    public String getOriginCBU() {
-        return originCBU;
+    public String getCbu() {
+        return cbu;
     }
 
-    public void setOriginCBU(String originCBU) {
-        this.originCBU = originCBU;
+    public void setCbu(String cbu) {
+        this.cbu = cbu;
     }
 
-    public String getDestinationCBU() {
-        return destinationCBU;
-    }
-
-    public void setDestinationCBU(String destinationCBU) {
-        this.destinationCBU = destinationCBU;
-    }
 
     public BigDecimal getAmount() {
         return amount;

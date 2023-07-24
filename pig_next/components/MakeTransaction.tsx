@@ -12,13 +12,12 @@ function MakeTransaction() {
       <Formik
         initialValues={{ identifierType: "name", identifier: "", amount: "" }}
         onSubmit={(values, helpers) => {
-          console.log(values);
           makeTransactionMutation.mutate({
             destinationIdentifierType: values.identifierType,
             destinationIdentifier: values.identifier,
             balance: parseFloat(values.amount),
-            reset: helpers.resetForm,
           });
+          helpers.resetForm();
         }}
       >
         <Form className="flex w-full flex-col items-center gap-4">
@@ -33,6 +32,7 @@ function MakeTransaction() {
               <option selected value="name">
                 Name
               </option>
+              <option value="alias">Alias</option>
               <option value="cbu">Cbu</option>
             </Field>
             <Field

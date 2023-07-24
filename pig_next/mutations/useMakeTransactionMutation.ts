@@ -9,15 +9,13 @@ export const useMakeTransactionMutation = () => {
       destinationIdentifierType,
       destinationIdentifier,
       balance,
-      reset,
     }: {
       destinationIdentifierType: string;
       destinationIdentifier: string;
       balance: number;
-      reset: () => void;
     }) => {
       const data = await axiosClient
-        .post("/api/makeTransaction", {
+        .post("/makeTransaction", {
           originIdentifierType: "cbu",
           originIdentifier: user!.cbu,
           destinationIdentifierType,
@@ -25,7 +23,7 @@ export const useMakeTransactionMutation = () => {
           balance,
         })
         .then((res) => {
-          if (data.status === 200) reset();
+          if (res.status === 200) alert("Transacción realizada con éxito");
           else alert("Error al realizar la transacción");
           return res.data;
         });

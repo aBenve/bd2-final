@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
-import { AccountWithOneIdentifierAndTokenRequest } from "../../../types";
+import { NextRequest, NextResponse } from "next/server";
 import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
-import { client } from "../../../service/postgre";
+import client from "../../../service/postgre";
 import { checkIfUserIsValid, getPrivateInfo } from "../../../utils/middleware";
 
-export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
+export async function GET(req: NextRequest) {
   const searchParams = new URL(req.nextUrl).searchParams;
 
   try {
@@ -24,10 +23,7 @@ export async function GET(req: AccountWithOneIdentifierAndTokenRequest) {
       [searchParams.get("type")!]: searchParams.get("identifier")!,
     };
 
-    const cbu = (await fromIdentifierToCBU(
-      identifierWithType,
-      client
-    )) as string;
+    const cbu = (await fromIdentifierToCBU(identifierWithType)) as string;
     const token = searchParams.get("secret_token") as string;
 
     if (!(await checkIfUserIsValid(cbu, token))) {
