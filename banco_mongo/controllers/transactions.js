@@ -15,7 +15,7 @@ module.exports.initiateTransaction = async (req, res) => {
       console.log(data);
       res.status(200).json("Transaction initiated");
     } else {
-      res.status(403).json({ message: "User is already blocked" });
+      res.status(403).json({ description: "User is already blocked" });
     }
   } catch (error) {
     res.status(400).json({ message: error.message });

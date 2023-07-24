@@ -31,7 +31,10 @@ module.exports.getUser = async (req, res) => {
   try {
     const data = await Model.findOne({ cbu: cbu });
     if (data) {
-      res.status(200).json({ cbu: data.cbu, name: data.name });
+      res.status(200).json({
+        description: "user found ",
+        content: { CBU: data.cbu, name: data.name },
+      });
     } else {
       res.status(404).json({ message: "User not found" });
     }
@@ -52,21 +55,21 @@ module.exports.isUser = async (req, res) => {
 
 module.exports.addFunds = async (req, res) => {
   try {
-    const cbu = req.body.cbu;
+    const cbu = req.body.CBU;
     const amount = req.body.amount;
-    const token = req.body.token;
-    const transactionID = req.body.transactionID;
+    const token = req.body.secretToken;
+    const transactionID = req.body.transactionId;
 
     const data = await Model.findOneAndUpdate(
       { cbu: cbu, secret_token: token, is_blocked: true },
       { $inc: { balance: amount } }
     );
     if (data) {
-      res.status(200).json(data);
+      res.status(200).json({ description: "Funds added" });
     } else {
       res
         .status(404)
-        .json({ message: " No valid account or active transaction found" });
+        .json({ description: " No valid account or active transaction found" });
     }
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -77,13 +80,13 @@ module.exports.removeFunds = async (req, res) => {
   try {
     const cbu = req.body.cbu;
     const amount = req.body.amount;
-    const token = req.body.token;
+    const token = req.body.secretToken;
     const data = await Model.findOneAndUpdate(
       { cbu: cbu, secret_token: token, is_blocked: true },
       { $inc: { balance: -amount } }
     );
     if (data) {
-      res.status(200).json("Valid credentials");
+      res.status(200).json({ description: "Valid credentials" });
     } else {
       res
         .status(404)

@@ -13,7 +13,9 @@ mongoose.connect(mongoString);
 const db = mongoose.connection;
 
 db.on("error", (error) => console.error(error));
-db.once("connected", () => console.log("Connected to database"));
+db.once("connected", () =>
+  console.log("Connected to database on url : " + mongoString)
+);
 
 const app = express();
 const port = process.env.PORT || 8000;
