@@ -1,5 +1,5 @@
 import { GetMessage } from "amqplib";
-import { rabbitChannel } from "../service/rabbitmq";
+import { rabbitChannelPromise } from "../service/rabbitmq";
 import { User, NewUserInfo, AccountIdentifiers } from "../types";
 
 const POSTGRE_BANK_API = process.env.POSTGRE_BANK_API;
@@ -13,8 +13,8 @@ const BANK_ENDPOINTS = {
   userPrivate: { endpoint: "/userPrivate", method: "GET" },
   userPublic: { endpoint: "/getUser", method: "GET" },
   initiateTransaction: { endpoint: "/initiateTransaction", method: "POST" },
-  addFunds: { endpoint: "/addFunds", method: "POST" },
-  removeFunds: { endpoint: "/removeFunds", method: "POST" },
+  addFunds: { endpoint: "/addFunds", method: "PATCH" },
+  removeFunds: { endpoint: "/removeFunds", method: "PATCH" },
   endTransaction: { endpoint: "/endTransaction", method: "POST" },
 };
 
@@ -54,19 +54,7 @@ export function fromSearchParamsToAccountIdentifier(
   throw new Error("No valid identifier found");
 }
 
-function addParamsToBody(
-  options: RequestInit,
-  params: {
-    cbu?: string;
-    password?: string;
-    originCBU?: string;
-    destinationCBU?: string;
-    amount?: string;
-    originSecretToken?: string;
-    destinationSecretToken?: string;
-    transactionId?: string;
-  }
-) {
+function addParamsToBody(options: RequestInit, params: { [key: string]: any }) {
   return { ...options, body: JSON.stringify(params) };
 }
 
@@ -164,198 +152,129 @@ export async function iniciateTransaction(
   originSecretToken: string,
   destinationCBU: string,
   destinationSecretToken: string,
-  amount: string
+  balance: string
 ): Promise<Boolean> {
-  if (
-    CBU_BANK_API_REFERENCE[originCBU as keyof CBU_BANK_API_REFERENCE] ===
-    CBU_BANK_API_REFERENCE[destinationCBU as keyof CBU_BANK_API_REFERENCE]
-  ) {
-    // Transaction inside one bank
-    let options: RequestInit = {
-      method: BANK_ENDPOINTS.initiateTransaction.method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-    let endpoint = getEndpoint(
-      originCBU,
-      BANK_ENDPOINTS.initiateTransaction.endpoint
-    );
+  // Initiate Transactions with banks
+  const transactionIds = {
+    origin: "",
+    destination: "",
+  };
+  // Send request to origin bank
+  let options = {
+    method: BANK_ENDPOINTS.initiateTransaction.method,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
 
-    if (BANK_ENDPOINTS.initiateTransaction.method != "GET") {
-      options = addParamsToBody(options, {
-        originCBU,
-        destinationCBU,
-        amount,
-        originSecretToken,
-        destinationSecretToken,
-      });
-    } else {
-      endpoint = addParamsToRequest(endpoint, [
-        { name: "originCBU", value: originCBU },
-        { name: "destinationCBU", value: destinationCBU },
-        { name: "amount", value: amount },
-        { name: "originSecretToken", value: originSecretToken },
-        { name: "destinationSecretToken", value: destinationSecretToken },
-      ]);
-    }
+  let initTransactionEndpoint = getEndpoint(
+    originCBU,
+    BANK_ENDPOINTS.initiateTransaction.endpoint
+  );
 
-    // Initiate Transaction with bank
-    let res = await fetch(endpoint, options);
+  options = addParamsToBody(options, {
+    cbu: originCBU,
+    amount: balance,
+    secretToken: originSecretToken,
+  });
 
-    if (!res.ok) {
-      console.log("No init");
-      return false;
-    }
+  let res = await fetch(initTransactionEndpoint, options);
 
-    const transactionId = await res.text();
-
-    console.log("Transaction Id: ", transactionId);
-
-    // Add and remove funds
-
-    if (!(await removeFunds(originCBU, amount, transactionId))) {
-      await endTransaction(originCBU, transactionId);
-      return false;
-    }
-
-    if (!(await addFunds(destinationCBU, amount, transactionId))) {
-      if (!(await addFunds(originCBU, amount, transactionId))) {
-        console.error(
-          `ERROR: Transaction failed, ${amount} has been taken from ${originCBU} and could not be returned.`
-        );
-        return false;
-      }
-      if (!(await endTransaction(originCBU, transactionId))) {
-        console.error(
-          `ERROR: All balances are ok but transaction could not be ended for ${originCBU}`
-        );
-      }
-      return false;
-    }
-
-    // Signal end of transaction
-    return await endTransaction(originCBU, transactionId);
-  } else {
-    // Initiate Transactions with banks
-    const transactionIds = {
-      origin: "",
-      destination: "",
-    };
-    // Send request to origin bank
-    let options = {
-      method: BANK_ENDPOINTS.initiateTransaction.method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-
-    let initTransactionEndpoint = getEndpoint(
-      originCBU,
-      BANK_ENDPOINTS.initiateTransaction.endpoint
-    );
-
-    if (BANK_ENDPOINTS.initiateTransaction.method != "GET") {
-      options = addParamsToBody(options, {
-        originCBU,
-        destinationCBU,
-        amount,
-        originSecretToken,
-      });
-    } else {
-      initTransactionEndpoint = addParamsToRequest(initTransactionEndpoint, [
-        { name: "originCBU", value: originCBU },
-        { name: "destinationCBU", value: destinationCBU },
-        { name: "amount", value: amount },
-        { name: "originSecretToken", value: originSecretToken },
-      ]);
-    }
-
-    let res = await fetch(initTransactionEndpoint, options);
-
-    if (!res.ok) {
-      return false;
-    }
-
-    transactionIds.origin = (await res.json()).transactionId;
-
-    options = {
-      method: BANK_ENDPOINTS.initiateTransaction.method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-    initTransactionEndpoint = getEndpoint(
-      originCBU,
-      BANK_ENDPOINTS.initiateTransaction.endpoint
-    );
-    if (BANK_ENDPOINTS.initiateTransaction.method != "GET") {
-      options = addParamsToBody(options, {
-        originCBU,
-        destinationCBU,
-        amount,
-        destinationSecretToken,
-      });
-    } else {
-      initTransactionEndpoint = addParamsToRequest(initTransactionEndpoint, [
-        { name: "originCBU", value: originCBU },
-        { name: "destinationCBU", value: destinationCBU },
-        { name: "amount", value: amount },
-        { name: "destinationSecretToken", value: destinationSecretToken },
-      ]);
-    }
-
-    res = await fetch(initTransactionEndpoint, options);
-
-    if (!res.ok) {
-      return false;
-    }
-
-    transactionIds.destination = (await res.json()).transactionId;
-
-    const endTransactions = async () => {
-      const allOk = await Promise.all([
-        endTransaction(originCBU, transactionIds.origin),
-        endTransaction(destinationCBU, transactionIds.destination),
-      ]);
-      return !allOk.includes(false);
-    };
-
-    // Add and remove funds
-    if (!(await removeFunds(originCBU, amount, transactionIds.origin))) {
-      if (!(await endTransactions())) {
-        console.error(
-          `ERROR: transaction could not be finished for transactions ${transactionIds}`
-        );
-      }
-      return false;
-    }
-
-    if (!(await addFunds(destinationCBU, amount, transactionIds.destination))) {
-      if (!(await addFunds(originCBU, amount, transactionIds.origin))) {
-        console.error(
-          `ERROR: Funds (${amount}) were removed from ${originCBU} but could not be returned after failure.`
-        );
-        return false;
-      }
-      if (!(await endTransactions())) {
-        console.error(
-          `ERROR: Funds were returned after failure but transactions(${transactionIds}) could not be ended`
-        );
-      }
-      return false;
-    }
-
-    // Signal end of transaction
-    return await endTransactions();
+  if (!res.ok) {
+    return false;
   }
+
+  transactionIds.origin = await res.text();
+
+  options = {
+    method: BANK_ENDPOINTS.initiateTransaction.method,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  initTransactionEndpoint = getEndpoint(
+    destinationCBU,
+    BANK_ENDPOINTS.initiateTransaction.endpoint
+  );
+
+  options = addParamsToBody(options, {
+    cbu: destinationCBU,
+    amount: balance,
+    secretToken: destinationSecretToken,
+  });
+
+  res = await fetch(initTransactionEndpoint, options);
+
+  if (!res.ok) {
+    return false;
+  }
+
+  transactionIds.destination = await res.text();
+
+  const endTransactions = async () => {
+    const allOk = await Promise.all([
+      endTransaction(originCBU, transactionIds.origin),
+      endTransaction(destinationCBU, transactionIds.destination),
+    ]);
+    return !allOk.includes(false);
+  };
+
+  // Add and remove funds
+  if (
+    !(await removeFunds(
+      originCBU,
+      balance,
+      transactionIds.origin,
+      originSecretToken
+    ))
+  ) {
+    if (!(await endTransactions())) {
+      console.error(
+        `ERROR: transaction could not be finished for transactions ${transactionIds}`
+      );
+    }
+    return false;
+  }
+
+  if (
+    !(await addFunds(
+      destinationCBU,
+      balance,
+      transactionIds.destination,
+      destinationSecretToken
+    ))
+  ) {
+    if (
+      !(await addFunds(
+        originCBU,
+        balance,
+        transactionIds.origin,
+        originSecretToken
+      ))
+    ) {
+      console.error(
+        `ERROR: Funds (${balance}) were removed from ${originCBU} but could not be returned after failure.`
+      );
+      return false;
+    }
+    if (!(await endTransactions())) {
+      console.error(
+        `ERROR: Funds were returned after failure but transactions(${transactionIds}) could not be ended`
+      );
+    }
+    return false;
+  }
+
+  // Signal end of transaction
+  return await endTransactions();
 }
 
 // returns if ok
 async function addFunds(
   cbu: string,
   amount: string,
-  transactionId: string
+  transactionId: string,
+  secretToken: string
 ): Promise<Boolean> {
   let options = {
     method: BANK_ENDPOINTS.addFunds.method,
@@ -365,19 +284,12 @@ async function addFunds(
   };
   let endpoint = getEndpoint(cbu, BANK_ENDPOINTS.addFunds.endpoint);
 
-  if (BANK_ENDPOINTS.removeFunds.method != "GET") {
-    options = addParamsToBody(options, {
-      cbu,
-      amount,
-      transactionId,
-    });
-  } else {
-    endpoint = addParamsToRequest(endpoint, [
-      { name: "cbu", value: cbu },
-      { name: "amount", value: amount },
-      { name: "transactionId", value: transactionId },
-    ]);
-  }
+  options = addParamsToBody(options, {
+    cbu,
+    amount,
+    transactionId,
+    secretToken,
+  });
 
   const res = await fetch(endpoint, options);
   return res.ok;
@@ -387,7 +299,8 @@ async function addFunds(
 async function removeFunds(
   cbu: string,
   amount: string,
-  transactionId: string
+  transactionId: string,
+  secretToken: string
 ): Promise<Boolean> {
   let options = {
     method: BANK_ENDPOINTS.removeFunds.method,
@@ -397,24 +310,14 @@ async function removeFunds(
   };
   let endpoint = getEndpoint(cbu, BANK_ENDPOINTS.removeFunds.endpoint);
 
-  if (BANK_ENDPOINTS.removeFunds.method != "GET") {
-    options = addParamsToBody(options, {
-      cbu,
-      amount,
-      transactionId,
-    });
-  } else {
-    endpoint = addParamsToRequest(endpoint, [
-      { name: "cbu", value: cbu },
-      { name: "amount", value: amount },
-      { name: "transactionId", value: transactionId },
-    ]);
-  }
+  options = addParamsToBody(options, {
+    cbu,
+    amount,
+    transactionId,
+    secretToken,
+  });
 
-  const res = await fetch(
-    getEndpoint(cbu, BANK_ENDPOINTS.removeFunds.endpoint),
-    options
-  );
+  const res = await fetch(endpoint, options);
   return res.ok;
 }
 
@@ -462,14 +365,17 @@ export async function forEachMessage(
   queueName: string,
   consumer: (msg: GetMessage) => void
 ) {
-  rabbitChannel.assertQueue(queueName, { durable: true });
+  await (await rabbitChannelPromise).assertQueue(queueName, { durable: true });
   while (true) {
-    const message = await rabbitChannel.get(queueName, { noAck: false });
+    const message = await (
+      await rabbitChannelPromise
+    ).get(queueName, { noAck: false });
+    console.log(message);
     if (!message) {
       break;
     }
     consumer(message);
   }
-  rabbitChannel.nackAll(true);
+  (await rabbitChannelPromise).nackAll(true);
   return;
 }

@@ -8,8 +8,8 @@ import {
   getBodyFromRequest,
   iniciateTransaction,
 } from "../../../utils/middleware";
-import { client } from "../../../service/postgre";
-import { rabbitChannel } from "../../../service/rabbitmq";
+import client from "../../../service/postgre";
+import { rabbitChannelPromise } from "../../../service/rabbitmq";
 import { fromIdentifierToCBU } from "../../../utils/fromIdentifierToCBU";
 
 export async function POST(req: NextRequest) {
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     if (!originIdentifier || !destinationIdentifier || !balance) {
       return NextResponse.json({ error: "Missing body" }, { status: 400 });
     }
+
     const originCBU = await fromIdentifierToCBU({
       type: originIdentifierType,
       [originIdentifierType]: originIdentifier,
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
       type: destinationIdentifierType,
       [destinationIdentifierType]: destinationIdentifier,
     });
+
     if (!originCBU || !destinationCBU) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
         originToken,
         destinationCBU,
         destinationToken,
-        body.amount
+        body.balance
       )
     ) {
       const msg: Transaction = {
@@ -62,27 +64,29 @@ export async function POST(req: NextRequest) {
         destinationIdentifierType,
         originIdentifier,
         destinationIdentifier,
-        balance: body.amount,
+        balance: body.balance,
         date: new Date(),
       };
 
       const userQueueName = originCBU + "-transactions";
-      rabbitChannel.assertQueue(userQueueName, { durable: true });
-      rabbitChannel.sendToQueue(
+      (await rabbitChannelPromise).assertQueue(userQueueName, {
+        durable: true,
+      });
+      (await rabbitChannelPromise).sendToQueue(
         "transactions",
         Buffer.from(JSON.stringify(msg)),
         {
           persistent: true,
         }
       );
-      rabbitChannel.sendToQueue(
+      (await rabbitChannelPromise).sendToQueue(
         userQueueName,
         Buffer.from(JSON.stringify(msg)),
         {
           persistent: true,
         }
       );
-      NextResponse.json(
+      return NextResponse.json(
         { message: "Transaction sent to queue" },
         { status: 200 }
       );

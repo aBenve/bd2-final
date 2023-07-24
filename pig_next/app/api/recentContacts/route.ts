@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { client } from "../../../service/postgre";
 import {
   AccountIdentifiersWithType,
   AccountWithOneIdentifier,
   AccountWithOneIdentifierAndTokenRequest,
-  QueueTransaction,
   Transaction,
   UserPublic,
 } from "../../../types";

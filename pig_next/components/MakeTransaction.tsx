@@ -17,8 +17,8 @@ function MakeTransaction() {
             destinationIdentifierType: values.identifierType,
             destinationIdentifier: values.identifier,
             balance: parseFloat(values.amount),
-            reset: helpers.resetForm,
           });
+          helpers.resetForm();
         }}
       >
         <Form className="flex w-full flex-col items-center gap-4">
