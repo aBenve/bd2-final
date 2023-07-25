@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Model = require("../models/users");
-const { uuid } = require('uuidv4');
+const { uuid } = require("uuidv4");
 
 module.exports.initiateTransaction = async (req, res) => {
   try {
@@ -12,7 +12,7 @@ module.exports.initiateTransaction = async (req, res) => {
     const data = await Model.findOne({ cbu: cbu, secret_token: token });
     console.log("init Transaction", data);
     if (data) {
-      if (!data.is_blocked) {
+      if (!data.is_blocked && data.balance >= amount) {
         const transactionID = uuid();
         const data = await Model.findOneAndUpdate(
           { cbu: cbu, secret_token: token },
@@ -22,7 +22,7 @@ module.exports.initiateTransaction = async (req, res) => {
               transaction: { transactionID: transactionID, amount: amount },
             },
           },
-         {new: true}
+          { new: true }
         );
         console.log("withTransaction", data);
         res.status(200).send(data.transaction.transactionID);
@@ -43,7 +43,7 @@ module.exports.initiateTransaction = async (req, res) => {
 module.exports.endTransaction = async (req, res) => {
   try {
     const transactionId = req.text;
-    console.log("endTransaction. Id: ",transactionId);
+    console.log("endTransaction. Id: ", transactionId);
     const user = await Model.findOne({
       "transaction.transactionID": transactionId,
       is_blocked: true,
@@ -53,9 +53,9 @@ module.exports.endTransaction = async (req, res) => {
       const data = await Model.findOneAndUpdate(
         { cbu: user.cbu },
         { $set: { is_blocked: false }, $unset: { transaction: "" } },
-        {new: true}
+        { new: true }
       );
-      console.log("data", data)
+      console.log("data", data);
       res.status(200).json({ description: "Transaction finalized" });
     } else {
       res.status(404).json({ description: "No active transaction found" });
