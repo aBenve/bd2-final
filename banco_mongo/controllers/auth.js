@@ -1,18 +1,19 @@
 const Model = require("../models/users");
+const bcrypt = require("bcryptjs");
 
 module.exports.authorizeUser = async (req, res) => {
+  console.log(req.body);
   const { cbu, password } = req.body;
+  console.log("cbu", cbu)
+  console.log("password", password);
   try {
     const data = await Model.findOne({ cbu: cbu });
     if (await bcrypt.compare(password, data.hashedPassword)) {
       res.status(200).json({
-        description: "User authorized",
-        content: {
           name: data.name,
           email: data.email,
           phoneNumber: data.phone,
           secretToken: data.secret_token,
-        },
       });
     } else {
       res.status(400).json({ description: "Authentication failure" });
@@ -23,9 +24,9 @@ module.exports.authorizeUser = async (req, res) => {
 };
 
 module.exports.verifyUser = async (req, res) => {
-  const { cbu, secret_token } = req.body;
+  const { cbu, secretToken } = req.body;
   try {
-    const data = await Model.findOne({ cbu: cbu, secret_token: secret_token });
+    const data = await Model.findOne({ cbu: cbu, secret_token: secretToken });
     if (data) {
       res.status(200).json({ description: "Valid Credentials" });
     } else {
@@ -37,18 +38,15 @@ module.exports.verifyUser = async (req, res) => {
 };
 
 module.exports.privateUser = async (req, res) => {
-  const { cbu, token } = req.body;
+  const { cbu, token } = req.query;
   try {
     const data = await Model.findOne({ cbu: cbu, secret_token: token });
     if (data) {
       res.status(200).json({
-        description: "User found",
-        content: {
           name: data.name,
           email: data.email,
-          phoneNumber: data.phone,
-        },
-      });
+          phoneNumber: data.phone
+        });
     } else {
       res.status(400).json({ description: "Authentication failure" });
     }

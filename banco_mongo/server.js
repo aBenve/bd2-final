@@ -1,5 +1,5 @@
 const dotenv = require("dotenv");
-dotenv.config({ path: "./config/.env" });
+dotenv.config({ path: "./.env" });
 
 const express = require("express"),
   bodyParser = require("body-parser"),
@@ -21,6 +21,16 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 app.use(express.json());
+app.use(function(req, res, next){
+  if (req.is('text/*')) {
+    req.text = '';
+    req.setEncoding('utf8');
+    req.on('data', function(chunk){ req.text += chunk });
+    req.on('end', next);
+  } else {
+    next();
+  }
+});
 app.use("/api", routes);
 
 const options = {
