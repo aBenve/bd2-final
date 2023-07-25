@@ -10,12 +10,21 @@ module.exports.initiateTransaction = async (req, res) => {
     const data = await Model.findOne({ cbu: cbu, secret_token: token });
     if (data) {
       if (!data.is_blocked) {
+        const transactionID = uuidv4();
         const data = await Model.findOneAndUpdate(
           { cbu: cbu, secret_token: token },
-          { $set: { is_blocked: true } }
+          {
+            $set: {
+              is_blocked: true,
+              transaction: { transactionID: transactionID, amount: amount },
+            },
+          }
         );
         console.log(data);
-        res.status(200).json("Transaction initiated");
+        res.status(200).json({
+          description: "Transaction initiated",
+          transactionId: data.transactionID,
+        });
       } else {
         res.status(403).json({
           description:
@@ -32,17 +41,19 @@ module.exports.initiateTransaction = async (req, res) => {
 
 module.exports.endTransaction = async (req, res) => {
   try {
-    const cbu = req.body.cbu;
     const transactionId = req.body.transactionId;
-    const status = await Model.findOne({ cbu: cbu }).is_blocked;
-    if (status) {
+    const user = await Model.findOne({
+      "transaction.transactionID": transactionId,
+      is_blocked: true,
+    });
+    if (user) {
       const data = await Model.findOneAndUpdate(
         { cbu: cbu },
-        { $set: { is_blocked: false } }
+        { $set: { is_blocked: false }, $unset: { transaction: "" } }
       );
-      res.status(200).json({ message: "Transaction finalized", data: data });
+      res.status(200).json({ description: "Transaction finalized" });
     } else {
-      res.status(404).json({ message: "No active transaction found" });
+      res.status(404).json({ description: "No active transaction found" });
     }
   } catch (error) {
     res.status(400).json({ message: error.message });

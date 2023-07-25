@@ -36,6 +36,14 @@ const dataSchema = new mongoose.Schema({
     required: true,
     type: String,
   },
+  transaction: {
+    transactionID: {
+      type: String,
+    },
+    amount: {
+      type: Number,
+    },
+  },
 });
 
 module.exports = mongoose.model("Data", dataSchema);

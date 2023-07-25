@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { log } = require("console");
 
+//* DONE
 module.exports.createUser = async (req, res) => {
   let hashedPassword = await bcrypt.hash(req.body.password, 8);
 
@@ -26,6 +27,7 @@ module.exports.createUser = async (req, res) => {
   }
 };
 
+//* DONE
 module.exports.getUser = async (req, res) => {
   const cbu = req.query.cbu;
   try {
@@ -43,6 +45,7 @@ module.exports.getUser = async (req, res) => {
   }
 };
 
+//* DONE
 module.exports.isUser = async (req, res) => {
   const cbu = req.query.cbu;
   try {
@@ -61,7 +64,13 @@ module.exports.addFunds = async (req, res) => {
     const transactionID = req.body.transactionId;
 
     const data = await Model.findOneAndUpdate(
-      { cbu: cbu, secret_token: token, is_blocked: true },
+      {
+        cbu: cbu,
+        secret_token: token,
+        is_blocked: true,
+        "transaction.transactionID": transactionID,
+        "transaction.amount": { $eq: amount },
+      },
       { $inc: { balance: amount } }
     );
     if (data) {
@@ -81,8 +90,15 @@ module.exports.removeFunds = async (req, res) => {
     const cbu = req.body.cbu;
     const amount = req.body.amount;
     const token = req.body.secretToken;
+    const transactionID = req.body.transactionId;
     const data = await Model.findOneAndUpdate(
-      { cbu: cbu, secret_token: token, is_blocked: true },
+      {
+        cbu: cbu,
+        secret_token: token,
+        is_blocked: true,
+        "transaction.transactionID": transactionID,
+        "transaction.amount": { $eq: amount },
+      },
       { $inc: { balance: -amount } }
     );
     if (data) {
@@ -97,6 +113,7 @@ module.exports.removeFunds = async (req, res) => {
   }
 };
 
+//* DONE
 module.exports.checkFunds = async (req, res) => {
   try {
     const cbu = req.body.cbu;
