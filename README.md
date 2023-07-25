@@ -1,3 +1,7 @@
+# Definiciones
+
+https://www.figma.com/file/bRkiQOrQ2IBqdF1I3AHJyf/PIG?type=whiteboard&node-id=0%3A1&t=U8dZyYxswtQ0zLg7-1
+
 # Ejecucion
 
 ## Codespace Banco Verde
