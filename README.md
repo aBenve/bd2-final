@@ -1,8 +1,29 @@
+# Definiciones
+
+https://www.figma.com/file/bRkiQOrQ2IBqdF1I3AHJyf/PIG?type=whiteboard&node-id=0%3A1&t=U8dZyYxswtQ0zLg7-1
+
 # Ejecucion
+
+## Codespace Banco Verde
+
+En el directorio `banco_mongo`
+
+Configurar el archivo `.env` en base al template `.env.dev`:
+
+```.env
+PORT= # Puerto en el que se correrá la api
+DATABASE_URL= # URL completa de la base de datos (p.e.: mongodb://localhost:27017/Banco_Verde)
+```
+
+Ejecutar el docker compose con la bd y la api:
+
+```bash
+docker-compose up --build
+```
 
 ## Codespace Banco Azul
 
-En el directorio `banco_postgre`
+En el directorio `banco_postgres`
 
 Compilar el codigo:
 
@@ -38,8 +59,8 @@ POSTGRES_DATABASE=users
 RABBITMQ_HOST=amqp://localhost
 RABBITMQ_PORT=5672
 
-MONGO_BANK_API= # url del puerto forwardeado en el codespace del Banco Azul
-POSTGRE_BANK_API= # url del puerto forwardeado en el codespace del Banco Verde
+MONGO_BANK_API= # url del puerto forwardeado en el codespace del Banco Verde (incluír /api al final)
+POSTGRE_BANK_API= # url del puerto forwardeado en el codespace del Banco Azul
 
 NODE_ENV=dev
 
@@ -58,8 +79,8 @@ Verificar que esten andando con:
 docker-compose ps
 ```
 
-Correr la API y el frontend:
+Buildear y correr la API y el frontend:
 
 ```bash
-npm run dev
+npm run build && npm run start
 ```

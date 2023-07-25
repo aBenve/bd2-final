@@ -21,7 +21,7 @@ const dataSchema = new mongoose.Schema({
   },
   cbu: {
     required: true,
-    type: Number,
+    type: String,
     unique: true,
   },
   hashedPassword: {

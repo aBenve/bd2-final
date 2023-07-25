@@ -46,9 +46,7 @@ router.patch("/update/:id", (req, res) => {
 });
 
 //Delete by ID Method
-router.delete("/delete/:id", (req, res) => {
-  res.send("Delete by ID API");
-});
+router.delete("/delete/", userController.deleteUser);
 
 /**
  * @swagger
@@ -293,9 +291,6 @@ router.patch("/removeFunds", userController.removeFunds);
  */
 router.get("/checkFunds", userController.checkFunds);
 
-//isUser
-router.get("/isUser", userController.isUser);
-
 /**
  * @swagger
  * tags:
@@ -409,7 +404,7 @@ router.post("/authorizeUser", authController.authorizeUser);
  *                   type: string
  *                   description: An error message indicating the reason for the failure.
  */
-router.patch("/initiateTransaction", transactionController.initiateTransaction);
+router.post("/initiateTransaction", transactionController.initiateTransaction);
 
 /**
  * @swagger
@@ -463,17 +458,6 @@ router.patch("/initiateTransaction", transactionController.initiateTransaction);
  *                   type: string
  *                   description: An error message indicating that the transaction was not found.
  */
-router.patch("/endTransaction", async (req, res) => {
-  try {
-    const email = req.body.email;
-    const data = await Model.findOneAndUpdate(
-      { email: email },
-      { $set: { is_blocked: false } }
-    );
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
+router.post("/endTransaction", transactionController.endTransaction);
 
 module.exports = router;
