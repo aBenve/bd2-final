@@ -7,8 +7,8 @@ import {
 export async function POST(req: any) {
   const body = getBodyFromRequest(req);
 
-  const { cbu, password, alias } = await body;
-  if (!cbu || !password || !alias) {
+  const { cbu, password } = await body;
+  if (!cbu || !password) {
     return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
   }
 

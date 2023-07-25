@@ -10,9 +10,13 @@ export interface User {
   creation_date?: Date;
 }
 
+export interface UserRequest extends NextRequest {
+  body: User;
+}
+
 export type NewUserInfo = {
   secretToken: string;
-  phoneNumber: string;
+  phone: string;
   email: string;
   name: string;
 };

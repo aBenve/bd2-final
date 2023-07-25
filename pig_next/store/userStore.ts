@@ -36,24 +36,33 @@ export const useUserAuth = create<useUserAuthStore>((set) => ({
     password: string;
     alias: string;
   }) => {
-    const res = await axiosClient.post("/login", {
+    const loginRes = await axiosClient.post("/login", {
       cbu,
       password,
-      alias,
     });
 
-    if (res.status !== 200) {
+    if (loginRes.status !== 200) {
       return false;
     }
 
-    const userInfo: NewUserInfo = res.data;
+    const userInfo: NewUserInfo = loginRes.data;
     const user: User = {
       cbu,
       secret_token: userInfo.secretToken,
       email: userInfo.email,
       name: userInfo.name,
-      phone: userInfo.phoneNumber,
+      phone: userInfo.phone,
+      alias: alias ? alias : userInfo.name + ".alias",
     };
+
+    const addUserRes = await axiosClient.post("/user", {
+      ...user,
+      creation_date: new Date(),
+    });
+
+    if (addUserRes.status !== 200) {
+      return false;
+    }
 
     localStorage.setItem("user", JSON.stringify(user));
 

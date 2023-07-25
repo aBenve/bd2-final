@@ -34,7 +34,7 @@ class PostgreClient {
 
   public init() {
     this.initTable();
-    this.addUser();
+    //this.addUser();
   }
 
   private addUser() {
@@ -64,7 +64,7 @@ class PostgreClient {
         `
     CREATE TABLE IF NOT EXISTS users (
         name VARCHAR(255) NOT NULL,
-        uuid UUID PRIMARY KEY,
+        uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) NOT NULL,
         phone CHAR(10) NOT NULL,
         cbu CHAR(22) NOT NULL,
@@ -72,6 +72,7 @@ class PostgreClient {
         alias VARCHAR(20) NOT NULL,
         creation_date TIMESTAMP NOT NULL,
     
+        CONSTRAINT name_unique UNIQUE (name),
         CONSTRAINT cbu_unique UNIQUE (cbu),
         CONSTRAINT email_unique UNIQUE (email),
         CONSTRAINT phone_unique UNIQUE (phone)

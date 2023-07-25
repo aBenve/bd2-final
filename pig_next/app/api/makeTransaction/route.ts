@@ -81,8 +81,12 @@ export async function POST(req: NextRequest) {
         date: new Date(),
       };
 
-      const userQueueName = originCBU + "-transactions";
-      (await rabbitChannelPromise).assertQueue(userQueueName, {
+      const originQueueName = originCBU + "-transactions";
+      const destinationQueueName = destinationCBU + "-transactions";
+      (await rabbitChannelPromise).assertQueue(originQueueName, {
+        durable: true,
+      });
+      (await rabbitChannelPromise).assertQueue(destinationQueueName, {
         durable: true,
       });
       (await rabbitChannelPromise).sendToQueue(
@@ -93,7 +97,14 @@ export async function POST(req: NextRequest) {
         }
       );
       (await rabbitChannelPromise).sendToQueue(
-        userQueueName,
+        originQueueName,
+        Buffer.from(JSON.stringify(msg)),
+        {
+          persistent: true,
+        }
+      );
+      (await rabbitChannelPromise).sendToQueue(
+        destinationQueueName,
         Buffer.from(JSON.stringify(msg)),
         {
           persistent: true,
