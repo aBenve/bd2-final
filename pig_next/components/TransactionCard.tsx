@@ -15,6 +15,12 @@ function TransactionCard({
   amount: string;
   isReceived: boolean;
 }) {
+  const addDotsToNumber = (number: number) => {
+    // the number could have decimals
+    const [integer, decimals] = number.toString().split(".");
+    const integerWithDots = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return decimals ? `${integerWithDots},${decimals}` : integerWithDots;
+  };
   return (
     <div className="flex w-full flex-col gap-4">
       <div className="flex items-center justify-between rounded-lg bg-stone-900 px-4 py-4">
@@ -34,7 +40,7 @@ function TransactionCard({
             isReceived ? "text-green-400" : "text-red-400"
           }`}
         >
-          {isReceived ? "+" : "-"}${amount}
+          {isReceived ? "+" : "-"}${addDotsToNumber(parseFloat(amount))}
         </span>
       </div>
     </div>
