@@ -39,7 +39,6 @@ export const useUserAuth = create<useUserAuthStore>((set) => ({
     const loginRes = await axiosClient.post("/login", {
       cbu,
       password,
-      alias,
     });
 
     if (loginRes.status !== 200) {
@@ -53,7 +52,7 @@ export const useUserAuth = create<useUserAuthStore>((set) => ({
       email: userInfo.email,
       name: userInfo.name,
       phone: userInfo.phone,
-      alias,
+      alias: alias ? alias : userInfo.name + ".alias",
     };
 
     const addUserRes = await axiosClient.post("/user", {

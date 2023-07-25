@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: UserRequest) {
+export async function POST(req: NextRequest) {
   const body = await getBodyFromRequest(req);
   const { name, alias, phone, email, secret_token, cbu, creation_date } =
     (await body) as unknown as User;
@@ -44,10 +44,26 @@ export async function POST(req: UserRequest) {
       return NextResponse.json({ error: "Missing body" }, { status: 400 });
     }
 
+    // chequeo si ya esta en la db
+    const user = await client.query(
+      `
+      SELECT * FROM users WHERE cbu = '${cbu}';
+    `
+    );
+
+    if (user.rows.length > 0) {
+      return NextResponse.json(
+        { message: "User already exists!" },
+        { status: 200 }
+      );
+    }
+
     const res = await client.query(
       `
       INSERT INTO users (name, email, phone, cbu, secret_token, alias, creation_date)
-      VALUES ('${name}', '${email}', '${phone}', '${cbu}', '${secret_token}', '${alias}', '${creation_date}')
+      VALUES ('${name}', '${email}', '${phone}', '${cbu}', '${secret_token}', '${
+        alias ? alias : name + ".alias"
+      }', '${creation_date}')
       ON CONFLICT DO NOTHING;
     `
     );
