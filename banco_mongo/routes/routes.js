@@ -116,14 +116,12 @@ router.post("/createUser", userController.createUser);
 
 /**
  * @swagger
- * tags:
- *   name: Users
- *   description: User management
- * /api/addFunds:
+ * /addFunds:
  *   patch:
- *     summary: Add funds to user account
- *     description: Adds funds to the user account with the provided CBU and token.
- *     tags: [Users]
+ *     summary: Add funds to user's account.
+ *     description: Adds the specified amount to the user's balance if the provided credentials and transaction details are valid.
+ *     tags:
+ *       - Transactions
  *     requestBody:
  *       required: true
  *       content:
@@ -133,26 +131,34 @@ router.post("/createUser", userController.createUser);
  *             properties:
  *               cbu:
  *                 type: string
+ *                 description: The unique identifier of the user's account.
  *               amount:
  *                 type: number
- *               token:
+ *                 description: The amount to be added to the user's balance.
+ *               secretToken:
  *                 type: string
+ *                 description: The secret token of the user for authentication.
+ *               transactionId:
+ *                 type: string
+ *                 description: The unique identifier of the transaction to be added.
+ *             required:
+ *               - cbu
+ *               - amount
+ *               - secretToken
+ *               - transactionId
  *     responses:
- *       200:
- *         description: Success - Funds added
+ *       '200':
+ *         description: Successfully added funds to the user's balance.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 cbu:
+ *                 description:
  *                   type: string
- *                 name:
- *                   type: string
- *                 balance:
- *                   type: number
- *       404:
- *         description: No valid account or active transaction found
+ *                   description: A description of the success message.
+ *       '400':
+ *         description: Invalid request or authentication failure.
  *         content:
  *           application/json:
  *             schema:
@@ -160,19 +166,28 @@ router.post("/createUser", userController.createUser);
  *               properties:
  *                 message:
  *                   type: string
+ *                   description: An error message describing the issue.
+ *       '404':
+ *         description: No valid account or active transaction found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: An error message indicating that the account or transaction was not found.
  */
 router.patch("/addFunds", userController.addFunds);
 
 /**
  * @swagger
- * tags:
- *   name: Users
- *   description: User management
- * /api/removeFunds:
+ * /removeFunds:
  *   patch:
- *     summary: Remove funds from user account
- *     description: Removes funds from the user account with the provided CBU and token.
- *     tags: [Users]
+ *     summary: Remove funds from user's account.
+ *     description: Deducts the specified amount from the user's balance if the provided credentials and transaction details are valid.
+ *     tags:
+ *       - Transactions
  *     requestBody:
  *       required: true
  *       content:
@@ -182,13 +197,34 @@ router.patch("/addFunds", userController.addFunds);
  *             properties:
  *               cbu:
  *                 type: string
+ *                 description: The unique identifier of the user's account.
  *               amount:
  *                 type: number
- *               token:
+ *                 description: The amount to be deducted from the user's balance.
+ *               secretToken:
  *                 type: string
+ *                 description: The secret token of the user for authentication.
+ *               transactionId:
+ *                 type: string
+ *                 description: The unique identifier of the transaction to be deducted.
+ *             required:
+ *               - cbu
+ *               - amount
+ *               - secretToken
+ *               - transactionId
  *     responses:
- *       200:
- *         description: Success - Funds removed
+ *       '200':
+ *         description: Successfully deducted funds from the user's balance.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 description:
+ *                   type: string
+ *                   description: A description of the success message.
+ *       '400':
+ *         description: Invalid request or authentication failure.
  *         content:
  *           application/json:
  *             schema:
@@ -196,8 +232,9 @@ router.patch("/addFunds", userController.addFunds);
  *               properties:
  *                 message:
  *                   type: string
- *       404:
- *         description: No valid account or active transaction found
+ *                   description: An error message describing the issue.
+ *       '404':
+ *         description: No valid account or active transaction found.
  *         content:
  *           application/json:
  *             schema:
@@ -205,8 +242,8 @@ router.patch("/addFunds", userController.addFunds);
  *               properties:
  *                 message:
  *                   type: string
+ *                   description: An error message indicating that the account or transaction was not found.
  */
-
 router.patch("/removeFunds", userController.removeFunds);
 
 /**
@@ -311,14 +348,12 @@ router.post("/authorizeUser", authController.authorizeUser);
 
 /**
  * @swagger
- * tags:
- *   name: Transactions
- *   description: Transaction management
- * /api/initiateTransaction:
+ * /initiateTransaction:
  *   post:
- *     summary: Initiate a transaction
- *     description: Initiates a transaction for the user with the provided CBU.
- *     tags: [Transactions]
+ *     summary: Initiate a transaction for user's account.
+ *     description: Initiates a transaction for the user's account with the specified amount if the provided credentials are valid and there is no active transaction.
+ *     tags:
+ *       - Transactions
  *     requestBody:
  *       required: true
  *       content:
@@ -328,44 +363,62 @@ router.post("/authorizeUser", authController.authorizeUser);
  *             properties:
  *               cbu:
  *                 type: string
+ *                 description: The unique identifier of the user's account.
+ *               amount:
+ *                 type: number
+ *                 description: The amount to be transacted in the initiated transaction.
+ *               secretToken:
+ *                 type: string
+ *                 description: The secret token of the user for authentication.
+ *             required:
+ *               - cbu
+ *               - amount
+ *               - secretToken
  *     responses:
- *       200:
- *         description: Success - Transaction initiated
- *         content:
- *           application/json:
- *             schema:
- *               type: string
- *       403:
- *         description: User is already blocked
+ *       '200':
+ *         description: Successfully initiated the transaction.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 message:
+ *                 description:
  *                   type: string
- *       404:
- *         description: User not found
+ *                   description: A description of the success message.
+ *                 transactionId:
+ *                   type: string
+ *                   description: The unique identifier of the initiated transaction.
+ *       '400':
+ *         description: Authentication failure or invalid request.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 message:
+ *                 description:
  *                   type: string
+ *                   description: An error message describing the issue.
+ *       '403':
+ *         description: An active transaction already exists, transaction to the same account, or insufficient funds for the operation.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 description:
+ *                   type: string
+ *                   description: An error message indicating the reason for the failure.
  */
 router.patch("/initiateTransaction", transactionController.initiateTransaction);
 
 /**
  * @swagger
- * tags:
- *   name: Transactions
- *   description: Transaction management
- * /api/endTransaction:
+ * /endTransaction:
  *   post:
- *     summary: End an active transaction
- *     description: Ends an active transaction for the user with the provided CBU.
- *     tags: [Transactions]
+ *     summary: End an active transaction for user's account.
+ *     description: Ends an active transaction for the user's account with the specified transaction ID if it exists and the user's account is blocked.
+ *     tags:
+ *       - Transactions
  *     requestBody:
  *       required: true
  *       content:
@@ -373,34 +426,42 @@ router.patch("/initiateTransaction", transactionController.initiateTransaction);
  *           schema:
  *             type: object
  *             properties:
- *               cbu:
+ *               transactionId:
  *                 type: string
+ *                 description: The unique identifier of the transaction to be ended.
+ *             required:
+ *               - transactionId
  *     responses:
- *       200:
- *         description: Success - Transaction finalized
+ *       '200':
+ *         description: Successfully ended the transaction.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 message:
+ *                 description:
  *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     field1:
- *                       type: string
- *                     field2:
- *                       type: string
- *       404:
- *         description: No active transaction found
+ *                   description: A description of the success message.
+ *       '400':
+ *         description: Authentication failure or invalid request.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 message:
+ *                 description:
  *                   type: string
+ *                   description: An error message describing the issue.
+ *       '404':
+ *         description: No active transaction found for the specified transaction ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 description:
+ *                   type: string
+ *                   description: An error message indicating that the transaction was not found.
  */
 router.patch("/endTransaction", async (req, res) => {
   try {
