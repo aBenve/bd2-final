@@ -8,7 +8,7 @@
 		"ghcr.io/devcontainers-contrib/features/springboot-sdkman:2": {
 			"version": "latest",
 			"jdkVersion": "17",
-			"jdkDistro": "open"
+			"jdkDistro": "ms"
 		}
 	/////////////////////////////////////
 	},
