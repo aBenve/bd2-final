@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { NewUserInfo, User } from "../types";
 import { axiosClient } from "../lib/axios";
-
+import { useAlertHandler } from "./useAlertHandler";
 interface useUserAuthStore {
   user: User | null;
   login: ({
@@ -16,9 +16,10 @@ interface useUserAuthStore {
   logout: () => void;
 }
 
-function getLocalStorageUser() {
+export function getLocalStorageUser() {
   const user =
     typeof window !== "undefined" ? localStorage.getItem("user") : null;
+
   if (user) {
     return JSON.parse(user) as User;
   }
@@ -36,16 +37,26 @@ export const useUserAuth = create<useUserAuthStore>((set) => ({
     password: string;
     alias: string;
   }) => {
-    const loginRes = await axiosClient.post("/login", {
-      cbu,
-      password,
-    });
+    const loginRes = await axiosClient
+      .post("/login", {
+        cbu,
+        password,
+      })
+      .then((res) => res.data)
+      .catch((err) => {
+        useAlertHandler.getState().setAlert({
+          message:
+            "There was an error while logging in. Check your credentials.",
+          isError: true,
+        });
+        return false;
+      });
 
-    if (loginRes.status !== 200) {
+    if (!loginRes) {
       return false;
     }
 
-    const userInfo: NewUserInfo = loginRes.data;
+    const userInfo: NewUserInfo = loginRes;
     const user: User = {
       cbu,
       secret_token: userInfo.secretToken,
@@ -55,12 +66,22 @@ export const useUserAuth = create<useUserAuthStore>((set) => ({
       alias: alias ? alias : userInfo.name + ".alias",
     };
 
-    const addUserRes = await axiosClient.post("/user", {
-      ...user,
-      creation_date: new Date(),
-    });
+    const addUserRes = await axiosClient
+      .post("/user", {
+        ...user,
+        creation_date: new Date(),
+      })
+      .then((res) => res.data)
+      .catch((err) => {
+        useAlertHandler.getState().setAlert({
+          message:
+            "There was an error while logging in. The user already exists",
+          isError: true,
+        });
+        return false;
+      });
 
-    if (addUserRes.status !== 200) {
+    if (!addUserRes) {
       return false;
     }
 

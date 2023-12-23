@@ -36,13 +36,12 @@ function MakeTransaction() {
               <Field
                 name="identifierType"
                 as="select"
+                default="name"
                 className="block h-[3rem] rounded-lg bg-stone-900  px-4 py-2 text-pink-400 focus:outline-none "
               >
                 <option value="phone">Phone</option>
                 <option value="email">Email</option>
-                <option selected value="name">
-                  Name
-                </option>
+                <option value="name">Name</option>
                 <option value="alias">Alias</option>
                 <option value="cbu">Cbu</option>
               </Field>

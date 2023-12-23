@@ -149,7 +149,7 @@ export async function authenticateUser(
     optionsWithBody
   );
 
-  if (res.status === 400) {
+  if (res.status === 400 || res.status === 401) {
     return undefined;
   }
   return res.json();
